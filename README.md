@@ -1,30 +1,9 @@
-# Real time signage clone
+# Bay Area Commute Monitor
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Built with [v0](https://v0.dev). Currently tested with Muni Metro Light Rail, but it can ingest data from other transit operators (e.g., CalTrain, BART) via the [511 API](https://511.org/open-data). Support for all operators has not been fully tested yet.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/kyle-awayan/v0-real-time-signage-clone)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/xbHSYCaYsOa)
+Data updates in real-time.
 
-## Overview
+**Try it out here:** [https://bacm.kyleawayan.com/](https://bacm.kyleawayan.com/)
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
-
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/kyle-awayan/v0-real-time-signage-clone](https://vercel.com/kyle-awayan/v0-real-time-signage-clone)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/xbHSYCaYsOa](https://v0.dev/chat/projects/xbHSYCaYsOa)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+![Screenshot 2025-05-27 at 7:19:35 PM](https://github.com/user-attachments/assets/292c3ef4-d10c-4a7c-a2c6-da4928c015b3)

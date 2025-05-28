@@ -19,6 +19,7 @@ function HomeContent() {
   const [showSelector, setShowSelector] = useState(false)
   const [selection, setSelection] = useState<TransitSelection | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isCompact, setIsCompact] = useState(false)
   const searchParams = useSearchParams()
 
   // Extract search params once
@@ -26,6 +27,17 @@ function HomeContent() {
   const lineId = searchParams.get("line")
   const patternId = searchParams.get("pattern")
   const stopCode = searchParams.get("stop")
+
+  // Detect if we're in a small viewport
+  useEffect(() => {
+    const checkSize = () => {
+      setIsCompact(window.innerHeight < 400 || window.innerWidth < 600)
+    }
+
+    checkSize()
+    window.addEventListener("resize", checkSize)
+    return () => window.removeEventListener("resize", checkSize)
+  }, [])
 
   // Load selection from URL parameters or localStorage
   useEffect(() => {
@@ -143,28 +155,32 @@ function HomeContent() {
         />
       ) : (
         <div className="flex items-center justify-center h-screen">
-          <Card>
-            <CardHeader>
-              <CardTitle>No Stop Selected</CardTitle>
-              <CardDescription>Please select a stop to display arrivals</CardDescription>
+          <Card className={isCompact ? "max-w-xs" : ""}>
+            <CardHeader className={isCompact ? "p-4" : ""}>
+              <CardTitle className={isCompact ? "text-lg" : ""}>No Stop Selected</CardTitle>
+              <CardDescription className={isCompact ? "text-sm" : ""}>
+                Please select a stop to display arrivals
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={() => setShowSelector(true)}>Select Stop</Button>
+            <CardContent className={isCompact ? "p-4 pt-0" : ""}>
+              <Button onClick={() => setShowSelector(true)} size={isCompact ? "sm" : "default"}>
+                Select Stop
+              </Button>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Stop Selector button */}
+      {/* Stop Selector button - make smaller on compact view */}
       <button
         onClick={() => setShowSelector(!showSelector)}
-        className="absolute top-4 right-4 bg-blue-200 hover:bg-blue-300 text-gray-800 p-2 rounded-full shadow-md z-10"
+        className={`absolute ${isCompact ? "top-2 right-2 p-1.5" : "top-4 right-4 p-2"} bg-blue-200 hover:bg-blue-300 text-gray-800 rounded-full shadow-md z-10`}
         aria-label={showSelector ? "Hide stop selector" : "Show stop selector"}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
+          width={isCompact ? "20" : "24"}
+          height={isCompact ? "20" : "24"}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

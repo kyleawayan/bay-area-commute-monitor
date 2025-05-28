@@ -214,7 +214,7 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
   }
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-lg">
       <CardHeader>
         <CardTitle>Select Transit Stop</CardTitle>
         <CardDescription>Choose your transit operator, line, direction, and stop</CardDescription>
@@ -403,8 +403,8 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
 
           {/* Debug Info */}
           {debugInfo && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-md text-xs overflow-auto max-h-60">
-              <h3 className="font-medium mb-2 text-gray-700 dark:text-gray-300">Debug Info:</h3>
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-xs overflow-auto max-h-40">
+              <h3 className="font-medium mb-1 text-gray-700 dark:text-gray-300">Debug Info:</h3>
               <pre className="text-gray-600 dark:text-gray-400">{JSON.stringify(debugInfo, null, 2)}</pre>
             </div>
           )}

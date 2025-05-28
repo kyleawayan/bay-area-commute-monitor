@@ -63,12 +63,32 @@ export function useTransitData(agency = "SF", stopCode?: string, line?: string) 
             const journey = visit.MonitoredVehicleJourney
             const call = journey.MonitoredCall
 
-            // Calculate minutes and seconds from expected arrival time
+            // Calculate minutes from expected arrival time
             let minutes = 0
             let seconds = 0
 
             if (call?.ExpectedArrivalTime) {
               const expectedTime = new Date(call.ExpectedArrivalTime).getTime()
+              const currentTime = new Date().getTime()
+              const diffMs = expectedTime - currentTime
+
+              if (diffMs > 0) {
+                minutes = Math.floor(diffMs / 60000)
+                seconds = Math.floor((diffMs % 60000) / 1000)
+              }
+            } else if (call?.ExpectedDepartureTime) {
+              // Fallback to departure time if arrival time is not available
+              const expectedTime = new Date(call.ExpectedDepartureTime).getTime()
+              const currentTime = new Date().getTime()
+              const diffMs = expectedTime - currentTime
+
+              if (diffMs > 0) {
+                minutes = Math.floor(diffMs / 60000)
+                seconds = Math.floor((diffMs % 60000) / 1000)
+              }
+            } else if (call?.AimedArrivalTime) {
+              // Fallback to aimed arrival time
+              const expectedTime = new Date(call.AimedArrivalTime).getTime()
               const currentTime = new Date().getTime()
               const diffMs = expectedTime - currentTime
 

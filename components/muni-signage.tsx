@@ -7,6 +7,9 @@ interface MuniSignageProps {
   stationName: string
   agency?: string
   stopCode?: string
+  selection?: {
+    line?: { id: string; name: string }
+  }
 }
 
 export function MuniSignage({
@@ -15,42 +18,10 @@ export function MuniSignage({
   stationName = "UCSF/Chase Center",
   agency = "SF",
   stopCode,
+  selection,
 }: MuniSignageProps) {
   // Use the hook to fetch real transit data
   const { predictions, loading, error, stationName: apiStationName } = useTransitData(agency, stopCode, line)
-
-  // Fallback to the first prediction or use default values
-  //const [minutes, setMinutes] = useState(8)
-  //const [seconds, setSeconds] = useState(16)
-
-  // Update the display with real data when available
-  //useEffect(() => {
-  //  if (predictions && predictions.length > 0) {
-  //    setMinutes(predictions[0].minutes)
-  //    setSeconds(predictions[0].seconds)
-  //  }
-  //}, [predictions])
-
-  // Countdown timer for when we don't have real-time updates
-  //useEffect(() => {
-  //  // Only run the countdown if we don't have real-time data
-  //  if (loading || predictions.length === 0) {
-  //    const timer = setInterval(() => {
-  //      if (seconds > 0) {
-  //        setSeconds(seconds - 1)
-  //      } else if (minutes > 0) {
-  //        setMinutes(minutes - 1)
-  //        setSeconds(59)
-  //      } else {
-  //        // Reset to a new time when it reaches 0
-  //        setMinutes(Math.floor(Math.random() * 10) + 5)
-  //        setSeconds(Math.floor(Math.random() * 60))
-  //      }
-  //    }, 1000)
-
-  //    return () => clearInterval(timer)
-  //  }
-  //}, [minutes, seconds, loading, predictions])
 
   // Use real destination if available
   const displayDestination = predictions.length > 0 ? predictions[0].destination : destination
@@ -70,7 +41,7 @@ export function MuniSignage({
         <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-12 bg-gradient-to-r from-white to-gray-100">
           <div className="flex items-center mb-4 md:mb-8">
             <div className="bg-red-600 text-white rounded-full px-4 py-2 md:px-8 md:py-3 inline-flex justify-center items-center">
-              <span className="text-4xl md:text-6xl font-bold">{line}</span>
+              <span className="text-4xl md:text-6xl font-bold">{selection?.line?.id || line}</span>
             </div>
           </div>
           <div className="flex items-center">
@@ -145,23 +116,30 @@ export function MuniSignage({
               <circle cx="12" cy="7" r="4" />
             </svg>
           </div>
+
+          {/* Main arrival time display */}
           <div className="flex items-baseline">
             {predictions.length > 0 ? (
               <>
                 <span className="text-5xl md:text-8xl font-bold text-blue-600 font-condensed">
                   {predictions[0].minutes}
                 </span>
-                <span className="text-5xl md:text-8xl font-bold text-blue-600 font-condensed">,</span>
-                <span className="text-5xl md:text-8xl font-bold text-blue-600 font-condensed">
-                  {predictions[0].seconds.toString().padStart(2, "0")}
-                </span>
                 <span className="text-xl md:text-3xl text-blue-600 ml-1 md:ml-2 font-condensed">min</span>
+
+                {predictions.length > 1 && (
+                  <>
+                    <span className="text-3xl md:text-5xl font-bold text-blue-400 font-condensed ml-3 md:ml-6">
+                      {predictions[1].minutes}
+                    </span>
+                    <span className="text-lg md:text-2xl text-blue-400 ml-1 md:ml-2 font-condensed">min</span>
+                  </>
+                )}
               </>
             ) : (
               <span className="text-3xl md:text-5xl text-gray-400 font-condensed">No arrivals</span>
             )}
           </div>
-          <div className="mt-2 text-gray-500 font-condensed text-sm md:text-base">Estimated arrival time</div>
+          <div className="mt-2 text-gray-500 font-condensed text-sm md:text-base">Estimated arrival times</div>
 
           {/* Show loading or error state */}
           {loading && (
@@ -204,16 +182,14 @@ export function MuniSignage({
           )}
 
           {/* Show next arrivals if available */}
-          {predictions.length > 1 && (
+          {predictions.length > 2 && (
             <div className="mt-4 w-full max-w-xs">
-              <h3 className="text-sm text-gray-500 mb-2">Next arrivals:</h3>
+              <h3 className="text-sm text-gray-500 mb-2">More arrivals:</h3>
               <div className="space-y-2">
-                {predictions.slice(1, 3).map((prediction, index) => (
+                {predictions.slice(2, 5).map((prediction, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="text-gray-600">{prediction.destination}</span>
-                    <span className="text-blue-600 font-medium">
-                      {prediction.minutes}:{prediction.seconds.toString().padStart(2, "0")} min
-                    </span>
+                    <span className="text-blue-600 font-medium">{prediction.minutes} min</span>
                   </div>
                 ))}
               </div>

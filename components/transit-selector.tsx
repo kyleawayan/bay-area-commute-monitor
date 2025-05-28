@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { Share2, Check } from "lucide-react"
 
 interface TransitSelection {
   operator: { id: string; name: string } | null
@@ -41,6 +42,7 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
 
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [copied, setCopied] = useState(false)
 
   // Load operators on mount
   useEffect(() => {
@@ -212,6 +214,59 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
       setLoading((prev) => ({ ...prev, patterns: false }))
     }
   }
+
+  const generateShareUrl = () => {
+    if (!selection.operator || !selection.line || !selection.pattern || !selection.stop) return ""
+
+    const baseUrl = window.location.origin + window.location.pathname
+    const params = new URLSearchParams()
+
+    params.set("operator", selection.operator.id)
+    params.set("line", selection.line.id)
+    params.set("pattern", selection.pattern.id)
+    params.set("stop", selection.stop.code)
+
+    return `${baseUrl}?${params.toString()}`
+  }
+
+  const handleShare = async () => {
+    const url = generateShareUrl()
+    if (!url) return
+
+    // Try to use the Web Share API if available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Transit Stop",
+          text: `Check arrivals at ${selection.stop?.name}`,
+          url: url,
+        })
+        return
+      } catch (err) {
+        console.log("Error sharing:", err)
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea")
+      textarea.value = url
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textarea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const hasCompleteSelection = selection.operator && selection.line && selection.pattern && selection.stop
 
   return (
     <Card className="w-full max-w-lg">
@@ -398,6 +453,30 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
                   /transit/StopMonitoring?agency={selection.operator?.id}&stopCode={selection.stop.code}
                 </p>
               </div>
+
+              {/* Share Button */}
+              {hasCompleteSelection && (
+                <div className="mt-4">
+                  <Button onClick={handleShare} variant="outline" className="w-full" disabled={!hasCompleteSelection}>
+                    {copied ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Link Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share This Stop
+                      </>
+                    )}
+                  </Button>
+                  {copied && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+                      Share link copied to clipboard
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

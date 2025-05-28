@@ -1,9 +1,10 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { MuniSignage } from "@/components/muni-signage"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TransitSelector } from "@/components/transit-selector"
+import { useSearchParams } from "next/navigation"
 
 interface TransitSelection {
   operator: { id: string; name: string } | null
@@ -12,29 +13,107 @@ interface TransitSelection {
   stop: { code: string; name: string } | null
 }
 
-export default function Home() {
+function HomeContent() {
   const [showControls, setShowControls] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
   const [showSelector, setShowSelector] = useState(false)
   const [selection, setSelection] = useState<TransitSelection | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const searchParams = useSearchParams()
 
-  // Load saved selection on mount
+  // Extract search params once
+  const operatorId = searchParams.get("operator")
+  const lineId = searchParams.get("line")
+  const patternId = searchParams.get("pattern")
+  const stopCode = searchParams.get("stop")
+
+  // Load selection from URL parameters or localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("transitSelection")
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          setSelection(parsed)
-        } catch (e) {
-          console.error("Error loading saved selection:", e)
+    const loadFromLocalStorage = () => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("transitSelection")
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved)
+            setSelection(parsed)
+          } catch (e) {
+            console.error("Error loading saved selection:", e)
+            setShowSelector(true)
+          }
+        } else {
+          // Show selector if no saved selection
+          setShowSelector(true)
         }
-      } else {
-        // Show selector if no saved selection
-        setShowSelector(true)
+      }
+      setIsLoading(false)
+    }
+
+    const loadFromUrlParams = async () => {
+      try {
+        // Fetch operator details
+        const operatorRes = await fetch("/api/operators")
+        const operatorData = await operatorRes.json()
+        const operator = operatorData.operators.find((op: any) => op.id === operatorId)
+
+        if (!operator) throw new Error("Operator not found")
+
+        // Fetch line details
+        const linesRes = await fetch(`/api/patterns?operator_id=${operatorId}`)
+        const linesData = await linesRes.json()
+        const line = linesData.lines.find((l: any) => l.id === lineId)
+
+        if (!line) throw new Error("Line not found")
+
+        // Fetch pattern details
+        const patternsRes = await fetch(`/api/patterns?operator_id=${operatorId}&line_id=${lineId}`)
+        const patternsData = await patternsRes.json()
+        const pattern = patternsData.patterns.find((p: any) => p.id === patternId)
+
+        if (!pattern) throw new Error("Pattern not found")
+
+        // Fetch stop details
+        const stopsRes = await fetch(`/api/stops?operator_id=${operatorId}&pattern_id=${patternId}`)
+        const stopsData = await stopsRes.json()
+        const stop = stopsData.stops.find((s: any) => s.code === stopCode)
+
+        if (!stop) throw new Error("Stop not found")
+
+        // Create selection object
+        const newSelection = {
+          operator: { id: operator.id, name: operator.name },
+          line: { id: line.id, name: line.name, color: line.color },
+          pattern: {
+            id: pattern.id,
+            name: pattern.name,
+            direction: pattern.direction,
+            destination: pattern.destination,
+          },
+          stop: { code: stop.code, name: stop.name },
+        }
+
+        // Save to localStorage and update state
+        localStorage.setItem("transitSelection", JSON.stringify(newSelection))
+        setSelection(newSelection)
+      } catch (error) {
+        console.error("Error loading from URL parameters:", error)
+        // Fall back to localStorage if URL parameters fail
+        loadFromLocalStorage()
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [])
+
+    // Only run this effect once on mount
+    if (isLoading) {
+      // If we have URL parameters, try to load the selection from them
+      if (operatorId && lineId && patternId && stopCode) {
+        loadFromUrlParams()
+      } else {
+        // No URL parameters, try localStorage
+        loadFromLocalStorage()
+      }
+    }
+  }, []) // Empty dependency array to run only once on mount
 
   const handleSelectionComplete = (newSelection: TransitSelection) => {
     setSelection(newSelection)
@@ -42,6 +121,14 @@ export default function Home() {
   }
 
   const hasCompleteSelection = selection?.operator && selection?.line && selection?.pattern && selection?.stop
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white relative">
@@ -121,5 +208,19 @@ export default function Home() {
         </div>
       )}
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   )
 }

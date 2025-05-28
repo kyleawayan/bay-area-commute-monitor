@@ -106,6 +106,13 @@ function HomeContent() {
         // Save to localStorage and update state
         localStorage.setItem("transitSelection", JSON.stringify(newSelection))
         setSelection(newSelection)
+
+        // Clear URL parameters after successful load
+        if (typeof window !== "undefined" && window.history.replaceState) {
+          const url = new URL(window.location.href)
+          url.search = ""
+          window.history.replaceState({}, document.title, url.toString())
+        }
       } catch (error) {
         console.error("Error loading from URL parameters:", error)
         // Fall back to localStorage if URL parameters fail

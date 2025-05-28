@@ -95,57 +95,6 @@ export function MuniSignage({
         <div
           className={`${isCompact ? "w-3/5" : "w-full md:w-1/2"} flex flex-col justify-center items-center ${isCompact ? "p-4" : "p-6 md:p-12"} bg-gradient-to-r from-gray-100 to-blue-50`}
         >
-          {/* Person icons - hide on very compact views */}
-          {!isCompact && (
-            <div className="flex items-center mb-2 md:mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#2e856e"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1 md:mr-2 md:w-9 md:h-9"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8a9ca7"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1 md:mr-2 md:w-9 md:h-9"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8a9ca7"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1 md:mr-2 md:w-9 md:h-9"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-          )}
-
           {/* Main arrival time display */}
           <div className="flex items-baseline">
             {predictions.length > 0 ? (

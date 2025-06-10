@@ -9,7 +9,10 @@ interface MuniSignageProps {
   agency?: string
   stopCode?: string
   selection?: {
-    line?: { id: string; name: string }
+    operator?: { id: string; name: string } | null
+    line?: { id: string; name: string; color?: string } | null
+    pattern?: { id: string; name: string; direction: string; destination: string } | null
+    stop?: { code: string; name: string } | null
   }
 }
 

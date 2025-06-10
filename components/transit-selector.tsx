@@ -183,11 +183,8 @@ export function TransitSelector({ onSelectionComplete, currentSelection }: Trans
     }
     setSelection(newSelection)
 
-    // Save to localStorage and notify parent
+    // Notify parent
     if (stop && selection.operator && selection.line && selection.pattern) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("transitSelection", JSON.stringify(newSelection))
-      }
       onSelectionComplete(newSelection)
     }
   }

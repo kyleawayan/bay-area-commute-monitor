@@ -18,7 +18,7 @@ function HomeContent() {
   const [showDebug, setShowDebug] = useState(false)
   const [showSelector, setShowSelector] = useState(false)
   const [selection, setSelection] = useState<TransitSelection | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [isCompact, setIsCompact] = useState(false)
   const searchParams = useSearchParams()
 
@@ -39,28 +39,10 @@ function HomeContent() {
     return () => window.removeEventListener("resize", checkSize)
   }, [])
 
-  // Load selection from URL parameters or localStorage
+  // Load selection from URL parameters
   useEffect(() => {
-    const loadFromLocalStorage = () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("transitSelection")
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved)
-            setSelection(parsed)
-          } catch (e) {
-            console.error("Error loading saved selection:", e)
-            setShowSelector(true)
-          }
-        } else {
-          // Show selector if no saved selection
-          setShowSelector(true)
-        }
-      }
-      setIsLoading(false)
-    }
-
     const loadFromUrlParams = async () => {
+      setIsLoading(true)
       try {
         // Fetch operator details
         const operatorRes = await fetch("/api/operators")
@@ -103,36 +85,23 @@ function HomeContent() {
           stop: { code: stop.code, name: stop.name },
         }
 
-        // Save to localStorage and update state
-        localStorage.setItem("transitSelection", JSON.stringify(newSelection))
         setSelection(newSelection)
-
-        // Clear URL parameters after successful load
-        if (typeof window !== "undefined" && window.history.replaceState) {
-          const url = new URL(window.location.href)
-          url.search = ""
-          window.history.replaceState({}, document.title, url.toString())
-        }
       } catch (error) {
         console.error("Error loading from URL parameters:", error)
-        // Fall back to localStorage if URL parameters fail
-        loadFromLocalStorage()
+        setShowSelector(true)
       } finally {
         setIsLoading(false)
       }
     }
 
-    // Only run this effect once on mount
-    if (isLoading) {
-      // If we have URL parameters, try to load the selection from them
-      if (operatorId && lineId && patternId && stopCode) {
-        loadFromUrlParams()
-      } else {
-        // No URL parameters, try localStorage
-        loadFromLocalStorage()
-      }
+    // If we have URL parameters, load the selection from them
+    if (operatorId && lineId && patternId && stopCode) {
+      loadFromUrlParams()
+    } else {
+      // No URL parameters, show selector
+      setShowSelector(true)
     }
-  }, []) // Empty dependency array to run only once on mount
+  }, [operatorId, lineId, patternId, stopCode])
 
   const handleSelectionComplete = (newSelection: TransitSelection) => {
     setSelection(newSelection)
@@ -151,7 +120,7 @@ function HomeContent() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white relative">
-      {hasCompleteSelection ? (
+      {hasCompleteSelection && selection.line && selection.pattern && selection.stop && selection.operator ? (
         <MuniSignage
           line={selection.line.name}
           destination={selection.pattern.destination}

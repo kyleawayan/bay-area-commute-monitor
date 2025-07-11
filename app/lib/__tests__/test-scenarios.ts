@@ -66,8 +66,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:36:00Z', // 9:36 AM PST - After BART arrival + walk
-    arrivalTime: '2025-07-14T16:35:00Z',
+    departureTime: '2025-07-14T16:55:00Z', // 9:55 AM PST - After BART arrival + walk
+    arrivalTime: '2025-07-14T16:54:00Z',
     vehicleRef: '2024',
     occupancy: 'seatsAvailable',
   },
@@ -77,8 +77,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:46:00Z', // 9:46 AM PST
-    arrivalTime: '2025-07-14T16:45:00Z',
+    departureTime: '2025-07-14T17:05:00Z', // 10:05 AM PST
+    arrivalTime: '2025-07-14T17:04:00Z',
     vehicleRef: '2025',
     occupancy: 'seatsAvailable',
   },
@@ -88,8 +88,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:56:00Z', // 9:56 AM PST
-    arrivalTime: '2025-07-14T16:55:00Z',
+    departureTime: '2025-07-14T17:15:00Z', // 10:15 AM PST
+    arrivalTime: '2025-07-14T17:14:00Z',
     vehicleRef: '2026',
     occupancy: 'seatsAvailable',
   },
@@ -99,8 +99,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T17:06:00Z', // 10:06 AM PST
-    arrivalTime: '2025-07-14T17:05:00Z',
+    departureTime: '2025-07-14T17:25:00Z', // 10:25 AM PST
+    arrivalTime: '2025-07-14T17:24:00Z',
     vehicleRef: '2027',
     occupancy: 'seatsAvailable',
   },
@@ -149,8 +149,8 @@ export const rushhourMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T15:55:00Z', // 8:55 AM PST
-    arrivalTime: '2025-07-14T15:54:00Z',
+    departureTime: '2025-07-14T16:31:00Z', // 9:31 AM PST - After 8:32 BART + 51 min + 8 min walk
+    arrivalTime: '2025-07-14T16:30:00Z',
     vehicleRef: '3001',
     occupancy: 'standingAvailable',
   },
@@ -160,8 +160,8 @@ export const rushhourMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:05:00Z', // 9:05 AM PST
-    arrivalTime: '2025-07-14T16:04:00Z',
+    departureTime: '2025-07-14T16:35:00Z', // 9:35 AM PST
+    arrivalTime: '2025-07-14T16:34:00Z',
     vehicleRef: '3002',
     occupancy: 'standingAvailable',
   },
@@ -171,8 +171,8 @@ export const rushhourMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:15:00Z', // 9:15 AM PST
-    arrivalTime: '2025-07-14T16:14:00Z',
+    departureTime: '2025-07-14T16:40:00Z', // 9:40 AM PST
+    arrivalTime: '2025-07-14T16:39:00Z',
     vehicleRef: '3003',
     occupancy: 'standingAvailable',
   },
@@ -210,8 +210,8 @@ export const lateStartMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T17:25:00Z', // 10:25 AM PST
-    arrivalTime: '2025-07-14T17:24:00Z',
+    departureTime: '2025-07-14T17:44:00Z', // 10:44 AM PST - After 9:45 BART + 51 min + 8 min walk
+    arrivalTime: '2025-07-14T17:43:00Z',
     vehicleRef: '4001',
     occupancy: 'seatsAvailable',
   },
@@ -221,8 +221,8 @@ export const lateStartMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T17:40:00Z', // 10:40 AM PST
-    arrivalTime: '2025-07-14T17:39:00Z',
+    departureTime: '2025-07-14T17:54:00Z', // 10:54 AM PST
+    arrivalTime: '2025-07-14T17:53:00Z',
     vehicleRef: '4002',
     occupancy: 'seatsAvailable',
   },

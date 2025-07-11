@@ -1,4 +1,4 @@
-import { fetchStopMonitoring, parseStopMonitoringDepartures } from './transit-api';
+import { fetchStopTimetable, parseStopTimetableDepartures } from './transit-api';
 
 // Hardcoded constants
 export const TRAVEL_TIMES = {
@@ -640,21 +640,26 @@ export async function optimizeCommute(
   console.log('Window start parsed:', windowStart.toISOString());
   console.log('Window end parsed:', windowEnd.toISOString());
 
-  // Fetch all departures upfront
+  // Fetch all departures upfront using timetable API
   console.log('\nFetching departures...');
   console.log('BART stop code:', config.bartStopCode);
   console.log('Muni stop code:', config.muniStopCode);
   
+  // Format start/end times for API (HH:MM in UTC)
+  const apiStartTime = `${windowStart.getUTCHours().toString().padStart(2, '0')}:${windowStart.getUTCMinutes().toString().padStart(2, '0')}`;
+  const apiEndTime = `${windowEnd.getUTCHours().toString().padStart(2, '0')}:${windowEnd.getUTCMinutes().toString().padStart(2, '0')}`;
+  console.log('API time window:', apiStartTime, 'to', apiEndTime);
+  
   const [bartResponse, muniResponse] = await Promise.all([
-    fetchStopMonitoring('BA', config.bartStopCode),
-    fetchStopMonitoring('SF', config.muniStopCode)
+    fetchStopTimetable('BA', config.bartStopCode, apiStartTime, apiEndTime),
+    fetchStopTimetable('SF', config.muniStopCode, apiStartTime, apiEndTime)
   ]);
   
   console.log('\nBART API Response:', JSON.stringify(bartResponse, null, 2));
   console.log('\nMuni API Response:', JSON.stringify(muniResponse, null, 2));
   
-  const bartDepartures = parseStopMonitoringDepartures(bartResponse).filter(d => d.departureTime);
-  const muniDepartures = parseStopMonitoringDepartures(muniResponse).filter(d => d.departureTime && d.lineName?.includes('T'));
+  const bartDepartures = parseStopTimetableDepartures(bartResponse).filter(d => d.departureTime);
+  const muniDepartures = parseStopTimetableDepartures(muniResponse).filter(d => d.departureTime && d.lineName?.includes('T'));
   
   console.log('\nParsed BART departures:', bartDepartures.length);
   bartDepartures.forEach((d, i) => {

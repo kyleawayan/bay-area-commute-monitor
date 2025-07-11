@@ -7,13 +7,17 @@ import { StopMonitoringResponseSchema } from '../transit-api';
 jest.mock('../transit-api', () => ({
   fetchStopMonitoring: jest.fn(),
   parseStopMonitoringDepartures: jest.fn(),
+  fetchStopTimetable: jest.fn(),
+  parseStopTimetableDepartures: jest.fn(),
 }));
 
 // Import the mocked functions
-import { fetchStopMonitoring, parseStopMonitoringDepartures } from '../transit-api';
+import { fetchStopMonitoring, parseStopMonitoringDepartures, fetchStopTimetable, parseStopTimetableDepartures } from '../transit-api';
 
 const mockFetchStopMonitoring = fetchStopMonitoring as jest.MockedFunction<typeof fetchStopMonitoring>;
 const mockParseStopMonitoringDepartures = parseStopMonitoringDepartures as jest.MockedFunction<typeof parseStopMonitoringDepartures>;
+const mockFetchStopTimetable = fetchStopTimetable as jest.MockedFunction<typeof fetchStopTimetable>;
+const mockParseStopTimetableDepartures = parseStopTimetableDepartures as jest.MockedFunction<typeof parseStopTimetableDepartures>;
 
 describe('Commute Optimization', () => {
   beforeEach(() => {

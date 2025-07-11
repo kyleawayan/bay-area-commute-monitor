@@ -3,8 +3,8 @@ import { fetchStopMonitoring, parseStopMonitoringDepartures } from './transit-ap
 // Hardcoded constants
 export const TRAVEL_TIMES = {
   bart: {
-    north_concord_to_powell: 35,
-    powell_to_north_concord: 35,
+    north_concord_to_powell: 51,
+    powell_to_north_concord: 49,
   },
   muni: {
     union_square_to_ucsf: 15,
@@ -13,9 +13,9 @@ export const TRAVEL_TIMES = {
 };
 
 export const WALK_TIMES = {
-  parking_to_bart: 3,
+  parking_to_bart: 5,
   bart_to_muni: 8,
-  muni_to_office: 6,
+  muni_to_office: 7,
 };
 
 export const STOP_CODES = {

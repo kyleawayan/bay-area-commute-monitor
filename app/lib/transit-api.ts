@@ -1,53 +1,60 @@
-export interface StopMonitoringResponse {
-  ServiceDelivery: {
-    ResponseTimestamp: string;
-    ProducerRef: string;
-    Status: boolean;
-    StopMonitoringDelivery?: {
-      version: string;
-      ResponseTimestamp: string;
-      Status: boolean;
-      MonitoredStopVisit?: Array<{
-        RecordedAtTime: string;
-        MonitoringRef: string;
-        MonitoredVehicleJourney: {
-          LineRef: string;
-          DirectionRef: string;
-          FramedVehicleJourneyRef: {
-            DataFrameRef: string;
-            DatedVehicleJourneyRef: string;
-          };
-          PublishedLineName: string;
-          OperatorRef: string;
-          OriginRef: string;
-          OriginName: string;
-          DestinationRef: string;
-          DestinationName: string;
-          Monitored: boolean;
-          VehicleLocation?: {
-            Longitude: string;
-            Latitude: string;
-          };
-          Bearing?: string;
-          Occupancy?: string;
-          VehicleRef: string;
-          MonitoredCall: {
-            StopPointRef: string;
-            StopPointName: string;
-            VehicleLocationAtStop: string;
-            VehicleAtStop: boolean;
-            DestinationDisplay: string;
-            AimedArrivalTime?: string;
-            ExpectedArrivalTime?: string;
-            AimedDepartureTime?: string;
-            ExpectedDepartureTime?: string;
-            Distances?: string;
-          };
-        };
-      }>;
-    };
-  };
-}
+import { z } from 'zod';
+
+// Zod schema for 511 API StopMonitoring response
+export const StopMonitoringResponseSchema = z.object({
+  ServiceDelivery: z.object({
+    ResponseTimestamp: z.string(),
+    ProducerRef: z.string(),
+    Status: z.boolean(),
+    StopMonitoringDelivery: z.object({
+      version: z.string(),
+      ResponseTimestamp: z.string(),
+      Status: z.boolean(),
+      MonitoredStopVisit: z.array(z.object({
+        RecordedAtTime: z.string(),
+        MonitoringRef: z.string(),
+        MonitoredVehicleJourney: z.object({
+          LineRef: z.string(),
+          DirectionRef: z.string(),
+          FramedVehicleJourneyRef: z.object({
+            DataFrameRef: z.string(),
+            DatedVehicleJourneyRef: z.string(),
+          }),
+          PublishedLineName: z.string(),
+          OperatorRef: z.string(),
+          OriginRef: z.string(),
+          OriginName: z.string(),
+          DestinationRef: z.string(),
+          DestinationName: z.string(),
+          Monitored: z.boolean(),
+          InCongestion: z.string().nullable(),
+          VehicleLocation: z.object({
+            Longitude: z.string(),
+            Latitude: z.string(),
+          }).optional(),
+          Bearing: z.string().nullable(),
+          Occupancy: z.string().nullable(),
+          VehicleRef: z.string().nullable(),
+          MonitoredCall: z.object({
+            StopPointRef: z.string(),
+            StopPointName: z.string(),
+            VehicleLocationAtStop: z.string(),
+            VehicleAtStop: z.string(),
+            DestinationDisplay: z.string(),
+            AimedArrivalTime: z.string().optional(),
+            ExpectedArrivalTime: z.string().optional(),
+            AimedDepartureTime: z.string().optional(),
+            ExpectedDepartureTime: z.string().nullable().optional(),
+            Distances: z.string().optional(),
+          }),
+        }),
+      })).optional(),
+    }).optional(),
+  }),
+});
+
+// Infer TypeScript type from Zod schema
+export type StopMonitoringResponse = z.infer<typeof StopMonitoringResponseSchema>;
 
 export async function fetchStopMonitoring(
   agency: string,
@@ -75,12 +82,10 @@ export async function fetchStopMonitoring(
 
     const data = await response.json();
 
-    // Validate the response structure
-    if (!data.ServiceDelivery?.StopMonitoringDelivery) {
-      throw new Error("Invalid API response structure");
-    }
+    // Validate the response structure with Zod
+    const validatedData = StopMonitoringResponseSchema.parse(data);
 
-    return data;
+    return validatedData;
   } catch (error) {
     console.error("Error fetching transit data:", error);
     throw error;

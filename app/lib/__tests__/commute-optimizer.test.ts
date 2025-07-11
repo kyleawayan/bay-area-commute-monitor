@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { optimizeCommute, OptimizationRequest } from '../commute-optimizer';
 import { testScenarios } from './test-scenarios';
+import { StopMonitoringResponseSchema } from '../transit-api';
 
 // Mock the transit API module
 jest.mock('../transit-api', () => ({
@@ -35,15 +36,15 @@ describe('Commute Optimization', () => {
     };
 
     it('should find optimal departure time with good connections', async () => {
-      // Mock API responses
+      // Mock API responses using exact 511 API format
       mockFetchStopMonitoring
         .mockResolvedValueOnce({
           ServiceDelivery: {
             ResponseTimestamp: '2025-07-14T15:00:00Z',
-            ProducerRef: 'BART',
+            ProducerRef: 'BA',
             Status: true,
             StopMonitoringDelivery: {
-              version: '1.0',
+              version: '1.4',
               ResponseTimestamp: '2025-07-14T15:00:00Z',
               Status: true,
               MonitoredStopVisit: [],
@@ -56,7 +57,7 @@ describe('Commute Optimization', () => {
             ProducerRef: 'SF',
             Status: true,
             StopMonitoringDelivery: {
-              version: '1.0',
+              version: '1.4',
               ResponseTimestamp: '2025-07-14T15:00:00Z',
               Status: true,
               MonitoredStopVisit: [],
@@ -80,8 +81,8 @@ describe('Commute Optimization', () => {
 
     it('should handle multiple BART options and find best connection', async () => {
       mockFetchStopMonitoring
-        .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } })
-        .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } });
+        .mockResolvedValueOnce({ ServiceDelivery: { ResponseTimestamp: '2025-07-14T15:00:00Z', ProducerRef: 'BA', Status: true, StopMonitoringDelivery: { version: '1.4', ResponseTimestamp: '2025-07-14T15:00:00Z', Status: true } } })
+        .mockResolvedValueOnce({ ServiceDelivery: { ResponseTimestamp: '2025-07-14T15:00:00Z', ProducerRef: 'SF', Status: true, StopMonitoringDelivery: { version: '1.4', ResponseTimestamp: '2025-07-14T15:00:00Z', Status: true } } });
 
       mockParseStopMonitoringDepartures
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)

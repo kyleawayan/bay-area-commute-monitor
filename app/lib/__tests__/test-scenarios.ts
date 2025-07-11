@@ -7,8 +7,8 @@ export const mondayMorningBartDepartures = [
     direction: 'N',
     origin: 'Warm Springs/South Fremont',
     destination: 'Daly City',
-    departureTime: '2025-07-14T15:35:00Z', // 8:35 AM PST
-    arrivalTime: '2025-07-14T15:34:00Z',
+    departureTime: '2025-07-14T15:53:00Z', // 8:53 AM PST - House departure: 8:30 AM
+    arrivalTime: '2025-07-14T15:52:00Z',
     vehicleRef: 'BART123',
     occupancy: 'seatsAvailable',
   },
@@ -18,8 +18,8 @@ export const mondayMorningBartDepartures = [
     direction: 'N',
     origin: 'Warm Springs/South Fremont',
     destination: 'Daly City',
-    departureTime: '2025-07-14T15:45:00Z', // 8:45 AM PST
-    arrivalTime: '2025-07-14T15:44:00Z',
+    departureTime: '2025-07-14T16:08:00Z', // 9:08 AM PST - House departure: 8:45 AM
+    arrivalTime: '2025-07-14T16:07:00Z',
     vehicleRef: 'BART124',
     occupancy: 'seatsAvailable',
   },
@@ -29,8 +29,8 @@ export const mondayMorningBartDepartures = [
     direction: 'N',
     origin: 'Warm Springs/South Fremont',
     destination: 'Daly City',
-    departureTime: '2025-07-14T15:55:00Z', // 8:55 AM PST
-    arrivalTime: '2025-07-14T15:54:00Z',
+    departureTime: '2025-07-14T16:23:00Z', // 9:23 AM PST - House departure: 9:00 AM
+    arrivalTime: '2025-07-14T16:22:00Z',
     vehicleRef: 'BART125',
     occupancy: 'seatsAvailable',
   },
@@ -40,8 +40,8 @@ export const mondayMorningBartDepartures = [
     direction: 'N',
     origin: 'Warm Springs/South Fremont',
     destination: 'Daly City',
-    departureTime: '2025-07-14T16:05:00Z', // 9:05 AM PST
-    arrivalTime: '2025-07-14T16:04:00Z',
+    departureTime: '2025-07-14T16:38:00Z', // 9:38 AM PST - House departure: 9:15 AM (outside window)
+    arrivalTime: '2025-07-14T16:37:00Z',
     vehicleRef: 'BART126',
     occupancy: 'seatsAvailable',
   },
@@ -51,8 +51,8 @@ export const mondayMorningBartDepartures = [
     direction: 'N',
     origin: 'Warm Springs/South Fremont',
     destination: 'Daly City',
-    departureTime: '2025-07-14T16:15:00Z', // 9:15 AM PST
-    arrivalTime: '2025-07-14T16:14:00Z',
+    departureTime: '2025-07-14T16:53:00Z', // 9:53 AM PST - House departure: 9:30 AM (outside window)
+    arrivalTime: '2025-07-14T16:52:00Z',
     vehicleRef: 'BART127',
     occupancy: 'seatsAvailable',
   },
@@ -65,8 +65,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:15:00Z', // 9:15 AM PST
-    arrivalTime: '2025-07-14T16:14:00Z',
+    departureTime: '2025-07-14T16:36:00Z', // 9:36 AM PST - After BART arrival + walk
+    arrivalTime: '2025-07-14T16:35:00Z',
     vehicleRef: 'MUNI2024',
     occupancy: 'seatsAvailable',
   },
@@ -76,8 +76,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:25:00Z', // 9:25 AM PST
-    arrivalTime: '2025-07-14T16:24:00Z',
+    departureTime: '2025-07-14T16:46:00Z', // 9:46 AM PST
+    arrivalTime: '2025-07-14T16:45:00Z',
     vehicleRef: 'MUNI2025',
     occupancy: 'seatsAvailable',
   },
@@ -87,8 +87,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:35:00Z', // 9:35 AM PST
-    arrivalTime: '2025-07-14T16:34:00Z',
+    departureTime: '2025-07-14T16:56:00Z', // 9:56 AM PST
+    arrivalTime: '2025-07-14T16:55:00Z',
     vehicleRef: 'MUNI2026',
     occupancy: 'seatsAvailable',
   },
@@ -98,8 +98,8 @@ export const mondayMorningMuniDepartures = [
     direction: 'N',
     origin: 'Bayshore Blvd & Sunnydale Ave',
     destination: 'Chinatown - Rose Pak Station',
-    departureTime: '2025-07-14T16:45:00Z', // 9:45 AM PST
-    arrivalTime: '2025-07-14T16:44:00Z',
+    departureTime: '2025-07-14T17:06:00Z', // 10:06 AM PST
+    arrivalTime: '2025-07-14T17:05:00Z',
     vehicleRef: 'MUNI2027',
     occupancy: 'seatsAvailable',
   },

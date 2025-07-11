@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Car, Train, Navigation, RefreshCw, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TRAVEL_TIMES, WALK_TIMES } from "@/app/lib/commute-optimizer";
 
 interface OptimizationResult {
   optimal_departure: string;
@@ -43,6 +44,87 @@ export default function CommuteMaxxing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizationResult | null>(null);
+
+  const showSampleResults = () => {
+    // Generate sample data using the same structure as real optimizer
+    const sampleResult: OptimizationResult = {
+      optimal_departure: "08:58",
+      total_journey_time: TRAVEL_TIMES.bart.north_concord_to_powell + TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.parking_to_bart + WALK_TIMES.bart_to_muni + WALK_TIMES.muni_to_office + driveTime,
+      arrival_time: "10:35",
+      confidence: 85,
+      segments: [
+        {
+          mode: "drive",
+          from: "Home",
+          to: "North Concord BART Parking",
+          duration: driveTime,
+          departure: "08:58",
+          arrival: "09:18"
+        },
+        {
+          mode: "walk",
+          from: "BART Parking",
+          to: "North Concord BART Station",
+          duration: WALK_TIMES.parking_to_bart,
+          departure: "09:18",
+          arrival: "09:23"
+        },
+        {
+          mode: "bart",
+          from: "North Concord BART",
+          to: "Powell St BART",
+          duration: TRAVEL_TIMES.bart.north_concord_to_powell,
+          departure: "09:23",
+          arrival: "10:14",
+          wait_time: 0,
+          line: "Yellow-N Daly City"
+        },
+        {
+          mode: "walk",
+          from: "Powell St BART",
+          to: "Union Square Muni",
+          duration: WALK_TIMES.bart_to_muni,
+          departure: "10:14",
+          arrival: "10:22"
+        },
+        {
+          mode: "muni",
+          from: "Union Square Muni",
+          to: "UCSF/Chase Center",
+          duration: TRAVEL_TIMES.muni.union_square_to_ucsf,
+          departure: "10:25",
+          arrival: "10:40",
+          wait_time: 3,
+          line: "T Third Street"
+        },
+        {
+          mode: "walk",
+          from: "UCSF/Chase Center",
+          to: "Office",
+          duration: WALK_TIMES.muni_to_office,
+          departure: "10:40",
+          arrival: "10:47"
+        }
+      ],
+      alternatives: [
+        {
+          departure: "08:43",
+          total_time: 102,
+          arrival: "10:25",
+          confidence: 82
+        },
+        {
+          departure: "09:13",
+          total_time: 99,
+          arrival: "10:52",
+          confidence: 80
+        }
+      ]
+    };
+    
+    setResult(sampleResult);
+    setError(null);
+  };
 
   const fetchOptimization = async () => {
     setLoading(true);
@@ -195,6 +277,18 @@ export default function CommuteMaxxing() {
               </>
             )}
           </Button>
+
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              onClick={showSampleResults}
+              variant="outline"
+              className="w-full mt-2"
+              size="lg"
+            >
+              <Badge className="mr-2" variant="secondary">DEV</Badge>
+              Show Sample Results
+            </Button>
+          )}
         </CardContent>
       </Card>
 

@@ -222,7 +222,7 @@ describe('Commute Optimization', () => {
   });
 
   describe('Evening Commute (to_home)', () => {
-    it('should handle reverse direction', async () => {
+    it('should handle reverse direction with proper segments', async () => {
       const eveningRequest: OptimizationRequest = {
         direction: 'to_home',
         preferred_departure_window: {
@@ -237,6 +237,7 @@ describe('Commute Optimization', () => {
         .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } })
         .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } });
 
+      // Use the working morning data but for evening - just to test the reverse logic works
       mockParseStopMonitoringDepartures
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
@@ -249,9 +250,65 @@ describe('Commute Optimization', () => {
         eveningRequest.direction
       );
 
-      // Should handle reverse direction
       expect(result).toBeDefined();
       expect(result.results).toBeDefined();
+      
+      if (result.results.length > 0) {
+        const journey = result.results[0];
+        
+        // Check that segments are in reverse order: office -> muni -> bart -> parking -> home
+        expect(journey.segments.length).toBeGreaterThan(0);
+        
+        // First segment should start from Office
+        expect(journey.segments[0].from).toBe('Office');
+        
+        // Should have drive segment at the end
+        const driveSegment = journey.segments.find(s => s.mode === 'drive');
+        expect(driveSegment?.from).toBe('North Concord BART Parking');
+        expect(driveSegment?.to).toBe('Home');
+        
+        // Should have BART from Powell to North Concord
+        const bartSegment = journey.segments.find(s => s.mode === 'bart');
+        expect(bartSegment?.from).toBe('Powell St BART');
+        expect(bartSegment?.to).toBe('North Concord BART');
+        
+        // Should have Muni from UCSF to Union Square
+        const muniSegment = journey.segments.find(s => s.mode === 'muni');
+        expect(muniSegment?.from).toBe('UCSF/Chase Center');
+        expect(muniSegment?.to).toBe('Union Square Muni');
+      }
+    });
+
+    it('should use different API endpoints for to_home direction', async () => {
+      const eveningRequest: OptimizationRequest = {
+        direction: 'to_home',
+        preferred_departure_window: {
+          start: '17:30',
+          end: '18:00',
+        },
+        drive_time_minutes: 20,
+        current_time: '2025-07-14T24:00:00Z',
+      };
+
+      mockFetchStopMonitoring
+        .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } })
+        .mockResolvedValueOnce({ ServiceDelivery: { StopMonitoringDelivery: {} } });
+
+      mockParseStopMonitoringDepartures
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([]);
+
+      await optimizeCommute(
+        eveningRequest.preferred_departure_window.start,
+        eveningRequest.preferred_departure_window.end,
+        eveningRequest.drive_time_minutes,
+        eveningRequest.current_time,
+        eveningRequest.direction
+      );
+
+      // Verify correct API endpoints were called for to_home direction
+      expect(mockFetchStopMonitoring).toHaveBeenCalledWith('BA', '901302'); // Powell BART northbound
+      expect(mockFetchStopMonitoring).toHaveBeenCalledWith('SF', '17361'); // UCSF southbound
     });
   });
 

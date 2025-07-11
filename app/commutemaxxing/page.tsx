@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -45,9 +45,20 @@ export default function CommuteMaxxing() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizationResult | null>(null);
 
+  // Update departure times when direction changes
+  useEffect(() => {
+    if (direction === "to_work") {
+      setDepartureStart("08:30");
+      setDepartureEnd("09:00");
+    } else {
+      setDepartureStart("16:00");
+      setDepartureEnd("17:00");
+    }
+  }, [direction]);
+
   const showSampleResults = () => {
     // Generate sample data using the same structure as real optimizer
-    const sampleResult: OptimizationResult = {
+    const sampleResult: OptimizationResult = direction === "to_work" ? {
       optimal_departure: "08:58",
       total_journey_time: TRAVEL_TIMES.bart.north_concord_to_powell + TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.parking_to_bart + WALK_TIMES.bart_to_muni + WALK_TIMES.muni_to_office + driveTime,
       arrival_time: "10:35",
@@ -118,6 +129,79 @@ export default function CommuteMaxxing() {
           total_time: 99,
           arrival: "10:52",
           confidence: 80
+        }
+      ]
+    } : {
+      optimal_departure: "17:05",
+      total_journey_time: TRAVEL_TIMES.bart.powell_to_north_concord + TRAVEL_TIMES.muni.ucsf_to_union_square + WALK_TIMES.parking_to_bart + WALK_TIMES.bart_to_muni + WALK_TIMES.muni_to_office + driveTime,
+      arrival_time: "18:42",
+      confidence: 87,
+      segments: [
+        {
+          mode: "walk",
+          from: "Office",
+          to: "UCSF/Chase Center",
+          duration: WALK_TIMES.muni_to_office,
+          departure: "17:05",
+          arrival: "17:12"
+        },
+        {
+          mode: "muni",
+          from: "UCSF/Chase Center",
+          to: "Union Square Muni",
+          duration: TRAVEL_TIMES.muni.ucsf_to_union_square,
+          departure: "17:15",
+          arrival: "17:30",
+          wait_time: 3,
+          line: "T Third Street"
+        },
+        {
+          mode: "walk",
+          from: "Union Square Muni",
+          to: "Powell St BART",
+          duration: WALK_TIMES.bart_to_muni,
+          departure: "17:30",
+          arrival: "17:38"
+        },
+        {
+          mode: "bart",
+          from: "Powell St BART",
+          to: "North Concord BART",
+          duration: TRAVEL_TIMES.bart.powell_to_north_concord,
+          departure: "17:42",
+          arrival: "18:31",
+          wait_time: 4,
+          line: "Yellow-N Antioch"
+        },
+        {
+          mode: "walk",
+          from: "North Concord BART Station",
+          to: "BART Parking",
+          duration: WALK_TIMES.parking_to_bart,
+          departure: "18:31",
+          arrival: "18:36"
+        },
+        {
+          mode: "drive",
+          from: "North Concord BART Parking",
+          to: "Home",
+          duration: driveTime,
+          departure: "18:36",
+          arrival: "18:56"
+        }
+      ],
+      alternatives: [
+        {
+          departure: "17:20",
+          total_time: 95,
+          arrival: "18:55",
+          confidence: 84
+        },
+        {
+          departure: "16:50",
+          total_time: 98,
+          arrival: "18:28",
+          confidence: 81
         }
       ]
     };
@@ -327,7 +411,9 @@ export default function CommuteMaxxing() {
               <CardContent>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Leave house</p>
+                    <p className="text-xs text-muted-foreground">
+                      {direction === "to_work" ? "Leave house" : "Leave office"}
+                    </p>
                     <p className="text-xl font-bold">{formatTimeWithAMPM(result.optimal_departure)}</p>
                   </div>
                   <div className="text-center">
@@ -335,7 +421,9 @@ export default function CommuteMaxxing() {
                     <p className="text-xl font-bold">{formatDuration(result.total_journey_time)}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Arrive</p>
+                    <p className="text-xs text-muted-foreground">
+                      {direction === "to_work" ? "Arrive at office" : "Arrive home"}
+                    </p>
                     <p className="text-xl font-bold">{formatTimeWithAMPM(result.arrival_time)}</p>
                   </div>
                 </div>

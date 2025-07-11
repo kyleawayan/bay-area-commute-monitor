@@ -20,13 +20,16 @@ export const WALK_TIMES = {
 
 export const STOP_CODES = {
   bart: {
-    north_concord: '903702',
-    powell: '901302',
+    north_concord_southbound: '903702',
+    north_concord_northbound: '903701',
+    powell_southbound: '901301',
+    powell_northbound: '901302',
   },
   muni: {
     union_square_northbound: '17877',
     ucsf_northbound: '17360',
-    // TODO: Add southbound stops for evening commute
+    ucsf_southbound: '17361',
+    union_square_southbound: '17874',
   },
 };
 
@@ -102,6 +105,19 @@ interface State {
   muniDeparture?: any;
 }
 
+interface JourneyConfig {
+  startLocation: 'home' | 'office';
+  endLocation: 'home' | 'office';
+  bartOrigin: 'north_concord' | 'powell';
+  bartDestination: 'north_concord' | 'powell';
+  muniOrigin: 'union_square' | 'ucsf';
+  muniDestination: 'union_square' | 'ucsf';
+  bartStopCode: string;
+  muniStopCode: string;
+  bartTravelKey: 'north_concord_to_powell' | 'powell_to_north_concord';
+  muniTravelKey: 'union_square_to_ucsf' | 'ucsf_to_union_square';
+}
+
 class MinHeap<T> {
   private heap: T[] = [];
   
@@ -160,94 +176,211 @@ function getStateKey(state: State): string {
   return `${state.location}-${state.time.getTime()}`;
 }
 
-function heuristic(state: State, driveTimeMinutes: number): number {
-  // Optimistic estimate of remaining time to destination
-  switch (state.location) {
-    case 'home':
-      return driveTimeMinutes + WALK_TIMES.parking_to_bart + 
-             TRAVEL_TIMES.bart.north_concord_to_powell + WALK_TIMES.bart_to_muni +
-             TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.muni_to_office;
-    case 'parking':
-      return WALK_TIMES.parking_to_bart + TRAVEL_TIMES.bart.north_concord_to_powell + 
-             WALK_TIMES.bart_to_muni + TRAVEL_TIMES.muni.union_square_to_ucsf + 
-             WALK_TIMES.muni_to_office;
-    case 'bart':
-      return TRAVEL_TIMES.bart.north_concord_to_powell + WALK_TIMES.bart_to_muni +
-             TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.muni_to_office;
-    case 'muni':
-      return TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.muni_to_office;
-    case 'office':
-      return 0;
-    default:
-      return 0;
+function getJourneyConfig(direction: 'to_work' | 'to_home'): JourneyConfig {
+  if (direction === 'to_work') {
+    return {
+      startLocation: 'home',
+      endLocation: 'office',
+      bartOrigin: 'north_concord',
+      bartDestination: 'powell',
+      muniOrigin: 'union_square',
+      muniDestination: 'ucsf',
+      bartStopCode: STOP_CODES.bart.north_concord_southbound,
+      muniStopCode: STOP_CODES.muni.union_square_northbound,
+      bartTravelKey: 'north_concord_to_powell',
+      muniTravelKey: 'union_square_to_ucsf',
+    };
+  } else {
+    return {
+      startLocation: 'office',
+      endLocation: 'home',
+      bartOrigin: 'powell',
+      bartDestination: 'north_concord',
+      muniOrigin: 'ucsf',
+      muniDestination: 'union_square',
+      bartStopCode: STOP_CODES.bart.powell_northbound,
+      muniStopCode: STOP_CODES.muni.ucsf_southbound,
+      bartTravelKey: 'powell_to_north_concord',
+      muniTravelKey: 'ucsf_to_union_square',
+    };
   }
 }
 
-function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeMinutes: number): State[] {
+function heuristic(state: State, driveTimeMinutes: number, config: JourneyConfig): number {
+  // Optimistic estimate of remaining time to destination
+  if (config.startLocation === 'home') {
+    // To work direction
+    switch (state.location) {
+      case 'home':
+        return driveTimeMinutes + WALK_TIMES.parking_to_bart + 
+               TRAVEL_TIMES.bart[config.bartTravelKey] + WALK_TIMES.bart_to_muni +
+               TRAVEL_TIMES.muni[config.muniTravelKey] + WALK_TIMES.muni_to_office;
+      case 'parking':
+        return WALK_TIMES.parking_to_bart + TRAVEL_TIMES.bart[config.bartTravelKey] + 
+               WALK_TIMES.bart_to_muni + TRAVEL_TIMES.muni[config.muniTravelKey] + 
+               WALK_TIMES.muni_to_office;
+      case 'bart':
+        return TRAVEL_TIMES.bart[config.bartTravelKey] + WALK_TIMES.bart_to_muni +
+               TRAVEL_TIMES.muni[config.muniTravelKey] + WALK_TIMES.muni_to_office;
+      case 'muni':
+        return TRAVEL_TIMES.muni[config.muniTravelKey] + WALK_TIMES.muni_to_office;
+      case 'office':
+        return 0;
+    }
+  } else {
+    // To home direction
+    switch (state.location) {
+      case 'office':
+        return WALK_TIMES.muni_to_office + TRAVEL_TIMES.muni[config.muniTravelKey] + 
+               WALK_TIMES.bart_to_muni + TRAVEL_TIMES.bart[config.bartTravelKey] +
+               WALK_TIMES.parking_to_bart + driveTimeMinutes;
+      case 'muni':
+        return TRAVEL_TIMES.muni[config.muniTravelKey] + WALK_TIMES.bart_to_muni +
+               TRAVEL_TIMES.bart[config.bartTravelKey] + WALK_TIMES.parking_to_bart + driveTimeMinutes;
+      case 'bart':
+        return TRAVEL_TIMES.bart[config.bartTravelKey] + WALK_TIMES.parking_to_bart + driveTimeMinutes;
+      case 'parking':
+        return driveTimeMinutes;
+      case 'home':
+        return 0;
+    }
+  }
+  return 0;
+}
+
+function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeMinutes: number, config: JourneyConfig): State[] {
   const neighbors: State[] = [];
   
-  switch (state.location) {
-    case 'home':
-      neighbors.push({
-        location: 'parking',
-        time: addMinutes(state.time, driveTimeMinutes),
-        cost: state.cost + driveTimeMinutes,
-        parent: state
-      });
-      break;
+  if (config.startLocation === 'home') {
+    // To work direction
+    switch (state.location) {
+      case 'home':
+        neighbors.push({
+          location: 'parking',
+          time: addMinutes(state.time, driveTimeMinutes),
+          cost: state.cost + driveTimeMinutes,
+          parent: state
+        });
+        break;
 
-    case 'parking':
-      neighbors.push({
-        location: 'bart',
-        time: addMinutes(state.time, WALK_TIMES.parking_to_bart),
-        cost: state.cost + WALK_TIMES.parking_to_bart,
-        parent: state
-      });
-      break;
+      case 'parking':
+        neighbors.push({
+          location: 'bart',
+          time: addMinutes(state.time, WALK_TIMES.parking_to_bart),
+          cost: state.cost + WALK_TIMES.parking_to_bart,
+          parent: state
+        });
+        break;
 
-    case 'bart':
-      const bartArrivalTime = state.time;
-      const nextBart = bartDeps.find(d => 
-        new Date(d.departureTime!) >= bartArrivalTime
-      );
-      
-      if (nextBart) {
-        const bartDepTime = new Date(nextBart.departureTime!);
-        const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime);
+      case 'bart':
+        const bartArrivalTime = state.time;
+        const nextBart = bartDeps.find(d => 
+          new Date(d.departureTime!) >= bartArrivalTime
+        );
         
+        if (nextBart) {
+          const bartDepTime = new Date(nextBart.departureTime!);
+          const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime);
+          
+          neighbors.push({
+            location: 'muni',
+            time: addMinutes(bartDepTime, TRAVEL_TIMES.bart[config.bartTravelKey] + 
+                                         WALK_TIMES.bart_to_muni),
+            cost: state.cost + waitTime + TRAVEL_TIMES.bart[config.bartTravelKey] + 
+                  WALK_TIMES.bart_to_muni,
+            parent: state,
+            bartDeparture: nextBart
+          });
+        }
+        break;
+
+      case 'muni':
+        const muniArrivalTime = state.time;
+        const nextMuni = muniDeps.find(d => 
+          new Date(d.departureTime!) >= muniArrivalTime
+        );
+        
+        if (nextMuni) {
+          const muniDepTime = new Date(nextMuni.departureTime!);
+          const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime);
+          
+          neighbors.push({
+            location: 'office',
+            time: addMinutes(muniDepTime, TRAVEL_TIMES.muni[config.muniTravelKey] + 
+                                         WALK_TIMES.muni_to_office),
+            cost: state.cost + waitTime + TRAVEL_TIMES.muni[config.muniTravelKey] + 
+                  WALK_TIMES.muni_to_office,
+            parent: state,
+            muniDeparture: nextMuni
+          });
+        }
+        break;
+    }
+  } else {
+    // To home direction
+    switch (state.location) {
+      case 'office':
         neighbors.push({
           location: 'muni',
-          time: addMinutes(bartDepTime, TRAVEL_TIMES.bart.north_concord_to_powell + 
-                                       WALK_TIMES.bart_to_muni),
-          cost: state.cost + waitTime + TRAVEL_TIMES.bart.north_concord_to_powell + 
-                WALK_TIMES.bart_to_muni,
-          parent: state,
-          bartDeparture: nextBart
+          time: addMinutes(state.time, WALK_TIMES.muni_to_office),
+          cost: state.cost + WALK_TIMES.muni_to_office,
+          parent: state
         });
-      }
-      break;
+        break;
 
-    case 'muni':
-      const muniArrivalTime = state.time;
-      const nextMuni = muniDeps.find(d => 
-        new Date(d.departureTime!) >= muniArrivalTime
-      );
-      
-      if (nextMuni) {
-        const muniDepTime = new Date(nextMuni.departureTime!);
-        const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime);
+      case 'muni':
+        const muniArrivalTime = state.time;
+        const nextMuni = muniDeps.find(d => 
+          new Date(d.departureTime!) >= muniArrivalTime
+        );
         
+        if (nextMuni) {
+          const muniDepTime = new Date(nextMuni.departureTime!);
+          const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime);
+          
+          neighbors.push({
+            location: 'bart',
+            time: addMinutes(muniDepTime, TRAVEL_TIMES.muni[config.muniTravelKey] + 
+                                         WALK_TIMES.bart_to_muni),
+            cost: state.cost + waitTime + TRAVEL_TIMES.muni[config.muniTravelKey] + 
+                  WALK_TIMES.bart_to_muni,
+            parent: state,
+            muniDeparture: nextMuni
+          });
+        }
+        break;
+
+      case 'bart':
+        const bartArrivalTime = state.time;
+        const nextBart = bartDeps.find(d => 
+          new Date(d.departureTime!) >= bartArrivalTime
+        );
+        
+        if (nextBart) {
+          const bartDepTime = new Date(nextBart.departureTime!);
+          const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime);
+          
+          neighbors.push({
+            location: 'parking',
+            time: addMinutes(bartDepTime, TRAVEL_TIMES.bart[config.bartTravelKey] + 
+                                         WALK_TIMES.parking_to_bart),
+            cost: state.cost + waitTime + TRAVEL_TIMES.bart[config.bartTravelKey] + 
+                  WALK_TIMES.parking_to_bart,
+            parent: state,
+            bartDeparture: nextBart
+          });
+        }
+        break;
+
+      case 'parking':
         neighbors.push({
-          location: 'office',
-          time: addMinutes(muniDepTime, TRAVEL_TIMES.muni.union_square_to_ucsf + 
-                                       WALK_TIMES.muni_to_office),
-          cost: state.cost + waitTime + TRAVEL_TIMES.muni.union_square_to_ucsf + 
-                WALK_TIMES.muni_to_office,
-          parent: state,
-          muniDeparture: nextMuni
+          location: 'home',
+          time: addMinutes(state.time, driveTimeMinutes),
+          cost: state.cost + driveTimeMinutes,
+          parent: state
         });
-      }
-      break;
+        break;
+    }
   }
   
   return neighbors;
@@ -265,7 +398,7 @@ function reconstructPath(goalState: State): State[] {
   return path;
 }
 
-function formatSolutions(solutions: State[], bartDepartures: any[], muniDepartures: any[]): OptimizationResponse {
+function formatSolutions(solutions: State[], bartDepartures: any[], muniDepartures: any[], config: JourneyConfig): OptimizationResponse {
   const results: OptimizationResult[] = [];
   
   for (const solution of solutions) {
@@ -277,72 +410,144 @@ function formatSolutions(solutions: State[], bartDepartures: any[], muniDepartur
       const current = path[i];
       const next = path[i + 1];
       
-      if (current.location === 'home' && next.location === 'parking') {
-        segments.push({
-          mode: 'drive',
-          from: 'Home',
-          to: 'North Concord BART Parking',
-          duration: getMinutesDiff(next.time, current.time),
-          departure: formatTime(current.time),
-          arrival: formatTime(next.time)
-        });
-      } else if (current.location === 'parking' && next.location === 'bart') {
-        segments.push({
-          mode: 'walk',
-          from: 'BART Parking',
-          to: 'North Concord BART Station',
-          duration: WALK_TIMES.parking_to_bart,
-          departure: formatTime(current.time),
-          arrival: formatTime(next.time)
-        });
-      } else if (current.location === 'bart' && next.location === 'muni') {
-        const bartWaitTime = getMinutesDiff(new Date(next.bartDeparture!.departureTime!), current.time);
-        const bartDepTime = new Date(next.bartDeparture!.departureTime!);
-        const bartArrTime = addMinutes(bartDepTime, TRAVEL_TIMES.bart.north_concord_to_powell);
-        
-        segments.push({
-          mode: 'bart',
-          from: 'North Concord BART',
-          to: 'Powell St BART',
-          duration: TRAVEL_TIMES.bart.north_concord_to_powell,
-          departure: formatTime(bartDepTime),
-          arrival: formatTime(bartArrTime),
-          wait_time: bartWaitTime,
-          line: next.bartDeparture!.lineName
-        });
-        
-        segments.push({
-          mode: 'walk',
-          from: 'Powell St BART',
-          to: 'Union Square Muni',
-          duration: WALK_TIMES.bart_to_muni,
-          departure: formatTime(bartArrTime),
-          arrival: formatTime(addMinutes(bartArrTime, WALK_TIMES.bart_to_muni))
-        });
-      } else if (current.location === 'muni' && next.location === 'office') {
-        const muniWaitTime = getMinutesDiff(new Date(next.muniDeparture!.departureTime!), current.time);
-        const muniDepTime = new Date(next.muniDeparture!.departureTime!);
-        const muniArrTime = addMinutes(muniDepTime, TRAVEL_TIMES.muni.union_square_to_ucsf);
-        
-        segments.push({
-          mode: 'muni',
-          from: 'Union Square Muni',
-          to: 'UCSF/Chase Center',
-          duration: TRAVEL_TIMES.muni.union_square_to_ucsf,
-          departure: formatTime(muniDepTime),
-          arrival: formatTime(muniArrTime),
-          wait_time: muniWaitTime,
-          line: next.muniDeparture!.lineName
-        });
-        
-        segments.push({
-          mode: 'walk',
-          from: 'UCSF/Chase Center',
-          to: 'Office',
-          duration: WALK_TIMES.muni_to_office,
-          departure: formatTime(muniArrTime),
-          arrival: formatTime(addMinutes(muniArrTime, WALK_TIMES.muni_to_office))
-        });
+      if (config.startLocation === 'home') {
+        // To work segments
+        if (current.location === 'home' && next.location === 'parking') {
+          segments.push({
+            mode: 'drive',
+            from: 'Home',
+            to: 'North Concord BART Parking',
+            duration: getMinutesDiff(next.time, current.time),
+            departure: formatTime(current.time),
+            arrival: formatTime(next.time)
+          });
+        } else if (current.location === 'parking' && next.location === 'bart') {
+          segments.push({
+            mode: 'walk',
+            from: 'BART Parking',
+            to: 'North Concord BART Station',
+            duration: WALK_TIMES.parking_to_bart,
+            departure: formatTime(current.time),
+            arrival: formatTime(next.time)
+          });
+        } else if (current.location === 'bart' && next.location === 'muni') {
+          const bartWaitTime = getMinutesDiff(new Date(next.bartDeparture!.departureTime!), current.time);
+          const bartDepTime = new Date(next.bartDeparture!.departureTime!);
+          const bartArrTime = addMinutes(bartDepTime, TRAVEL_TIMES.bart[config.bartTravelKey]);
+          
+          segments.push({
+            mode: 'bart',
+            from: 'North Concord BART',
+            to: 'Powell St BART',
+            duration: TRAVEL_TIMES.bart[config.bartTravelKey],
+            departure: formatTime(bartDepTime),
+            arrival: formatTime(bartArrTime),
+            wait_time: bartWaitTime,
+            line: next.bartDeparture!.lineName
+          });
+          
+          segments.push({
+            mode: 'walk',
+            from: 'Powell St BART',
+            to: 'Union Square Muni',
+            duration: WALK_TIMES.bart_to_muni,
+            departure: formatTime(bartArrTime),
+            arrival: formatTime(addMinutes(bartArrTime, WALK_TIMES.bart_to_muni))
+          });
+        } else if (current.location === 'muni' && next.location === 'office') {
+          const muniWaitTime = getMinutesDiff(new Date(next.muniDeparture!.departureTime!), current.time);
+          const muniDepTime = new Date(next.muniDeparture!.departureTime!);
+          const muniArrTime = addMinutes(muniDepTime, TRAVEL_TIMES.muni[config.muniTravelKey]);
+          
+          segments.push({
+            mode: 'muni',
+            from: 'Union Square Muni',
+            to: 'UCSF/Chase Center',
+            duration: TRAVEL_TIMES.muni[config.muniTravelKey],
+            departure: formatTime(muniDepTime),
+            arrival: formatTime(muniArrTime),
+            wait_time: muniWaitTime,
+            line: next.muniDeparture!.lineName
+          });
+          
+          segments.push({
+            mode: 'walk',
+            from: 'UCSF/Chase Center',
+            to: 'Office',
+            duration: WALK_TIMES.muni_to_office,
+            departure: formatTime(muniArrTime),
+            arrival: formatTime(addMinutes(muniArrTime, WALK_TIMES.muni_to_office))
+          });
+        }
+      } else {
+        // To home segments
+        if (current.location === 'office' && next.location === 'muni') {
+          segments.push({
+            mode: 'walk',
+            from: 'Office',
+            to: 'UCSF/Chase Center',
+            duration: WALK_TIMES.muni_to_office,
+            departure: formatTime(current.time),
+            arrival: formatTime(next.time)
+          });
+        } else if (current.location === 'muni' && next.location === 'bart') {
+          const muniWaitTime = getMinutesDiff(new Date(next.muniDeparture!.departureTime!), current.time);
+          const muniDepTime = new Date(next.muniDeparture!.departureTime!);
+          const muniArrTime = addMinutes(muniDepTime, TRAVEL_TIMES.muni[config.muniTravelKey]);
+          
+          segments.push({
+            mode: 'muni',
+            from: 'UCSF/Chase Center',
+            to: 'Union Square Muni',
+            duration: TRAVEL_TIMES.muni[config.muniTravelKey],
+            departure: formatTime(muniDepTime),
+            arrival: formatTime(muniArrTime),
+            wait_time: muniWaitTime,
+            line: next.muniDeparture!.lineName
+          });
+          
+          segments.push({
+            mode: 'walk',
+            from: 'Union Square Muni',
+            to: 'Powell St BART',
+            duration: WALK_TIMES.bart_to_muni,
+            departure: formatTime(muniArrTime),
+            arrival: formatTime(addMinutes(muniArrTime, WALK_TIMES.bart_to_muni))
+          });
+        } else if (current.location === 'bart' && next.location === 'parking') {
+          const bartWaitTime = getMinutesDiff(new Date(next.bartDeparture!.departureTime!), current.time);
+          const bartDepTime = new Date(next.bartDeparture!.departureTime!);
+          const bartArrTime = addMinutes(bartDepTime, TRAVEL_TIMES.bart[config.bartTravelKey]);
+          
+          segments.push({
+            mode: 'bart',
+            from: 'Powell St BART',
+            to: 'North Concord BART',
+            duration: TRAVEL_TIMES.bart[config.bartTravelKey],
+            departure: formatTime(bartDepTime),
+            arrival: formatTime(bartArrTime),
+            wait_time: bartWaitTime,
+            line: next.bartDeparture!.lineName
+          });
+          
+          segments.push({
+            mode: 'walk',
+            from: 'North Concord BART Station',
+            to: 'BART Parking',
+            duration: WALK_TIMES.parking_to_bart,
+            departure: formatTime(bartArrTime),
+            arrival: formatTime(addMinutes(bartArrTime, WALK_TIMES.parking_to_bart))
+          });
+        } else if (current.location === 'parking' && next.location === 'home') {
+          segments.push({
+            mode: 'drive',
+            from: 'North Concord BART Parking',
+            to: 'Home',
+            duration: getMinutesDiff(next.time, current.time),
+            departure: formatTime(current.time),
+            arrival: formatTime(next.time)
+          });
+        }
       }
     }
     
@@ -379,22 +584,23 @@ export async function optimizeCommute(
   currentTime: string,
   direction: 'to_work' | 'to_home' = 'to_work'
 ): Promise<OptimizationResponse> {
+  const config = getJourneyConfig(direction);
   const windowStart = parseTime(departureWindowStart, currentTime);
   const windowEnd = parseTime(departureWindowEnd, currentTime);
 
   // Fetch all departures upfront
   const [bartDepartures, muniDepartures] = await Promise.all([
-    fetchStopMonitoring('BA', STOP_CODES.bart.north_concord).then(r => 
+    fetchStopMonitoring('BA', config.bartStopCode).then(r => 
       parseStopMonitoringDepartures(r).filter(d => d.departureTime)
     ),
-    fetchStopMonitoring('SF', STOP_CODES.muni.union_square_northbound).then(r =>
+    fetchStopMonitoring('SF', config.muniStopCode).then(r =>
       parseStopMonitoringDepartures(r).filter(d => d.departureTime && d.lineName?.includes('T'))
     )
   ]);
 
   // A* priority queue (min-heap based on f = g + h)
   const openSet = new MinHeap<State>((a, b) => 
-    (a.cost + heuristic(a, driveTimeMinutes)) - (b.cost + heuristic(b, driveTimeMinutes))
+    (a.cost + heuristic(a, driveTimeMinutes, config)) - (b.cost + heuristic(b, driveTimeMinutes, config))
   );
 
   // Track best cost to reach each state
@@ -404,7 +610,7 @@ export async function optimizeCommute(
   for (let minutes = 0; minutes <= getMinutesDiff(windowEnd, windowStart); minutes += 5) {
     const departTime = addMinutes(windowStart, minutes);
     const startState: State = {
-      location: 'home',
+      location: config.startLocation,
       time: departTime,
       cost: 0
     };
@@ -418,13 +624,13 @@ export async function optimizeCommute(
     const current = openSet.pop()!;
 
     // Goal reached
-    if (current.location === 'office') {
+    if (current.location === config.endLocation) {
       solutions.push(current);
       continue;
     }
 
     // Generate neighbors based on current location
-    const neighbors = getNeighbors(current, bartDepartures, muniDepartures, driveTimeMinutes);
+    const neighbors = getNeighbors(current, bartDepartures, muniDepartures, driveTimeMinutes, config);
 
     for (const neighbor of neighbors) {
       const tentativeGScore = neighbor.cost;
@@ -439,5 +645,5 @@ export async function optimizeCommute(
   }
 
   // Convert solutions to response format
-  return formatSolutions(solutions, bartDepartures, muniDepartures);
+  return formatSolutions(solutions, bartDepartures, muniDepartures, config);
 }

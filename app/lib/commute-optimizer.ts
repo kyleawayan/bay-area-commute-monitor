@@ -160,11 +160,11 @@ function getStateKey(state: State): string {
   return `${state.location}-${state.time.getTime()}`;
 }
 
-function heuristic(state: State, request: OptimizationRequest): number {
+function heuristic(state: State, driveTimeMinutes: number): number {
   // Optimistic estimate of remaining time to destination
   switch (state.location) {
     case 'home':
-      return request.drive_time_minutes + WALK_TIMES.parking_to_bart + 
+      return driveTimeMinutes + WALK_TIMES.parking_to_bart + 
              TRAVEL_TIMES.bart.north_concord_to_powell + WALK_TIMES.bart_to_muni +
              TRAVEL_TIMES.muni.union_square_to_ucsf + WALK_TIMES.muni_to_office;
     case 'parking':
@@ -183,15 +183,15 @@ function heuristic(state: State, request: OptimizationRequest): number {
   }
 }
 
-function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], request: OptimizationRequest): State[] {
+function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeMinutes: number): State[] {
   const neighbors: State[] = [];
   
   switch (state.location) {
     case 'home':
       neighbors.push({
         location: 'parking',
-        time: addMinutes(state.time, request.drive_time_minutes),
-        cost: state.cost + request.drive_time_minutes,
+        time: addMinutes(state.time, driveTimeMinutes),
+        cost: state.cost + driveTimeMinutes,
         parent: state
       });
       break;
@@ -372,10 +372,15 @@ function formatSolutions(solutions: State[], bartDepartures: any[], muniDepartur
   };
 }
 
-export async function optimizeCommute(request: OptimizationRequest): Promise<OptimizationResponse> {
-  const currentTime = new Date(request.current_time);
-  const windowStart = parseTime(request.preferred_departure_window.start, request.current_time);
-  const windowEnd = parseTime(request.preferred_departure_window.end, request.current_time);
+export async function optimizeCommute(
+  departureWindowStart: string,
+  departureWindowEnd: string,
+  driveTimeMinutes: number,
+  currentTime: string,
+  direction: 'to_work' | 'to_home' = 'to_work'
+): Promise<OptimizationResponse> {
+  const windowStart = parseTime(departureWindowStart, currentTime);
+  const windowEnd = parseTime(departureWindowEnd, currentTime);
 
   // Fetch all departures upfront
   const [bartDepartures, muniDepartures] = await Promise.all([
@@ -389,7 +394,7 @@ export async function optimizeCommute(request: OptimizationRequest): Promise<Opt
 
   // A* priority queue (min-heap based on f = g + h)
   const openSet = new MinHeap<State>((a, b) => 
-    (a.cost + heuristic(a, request)) - (b.cost + heuristic(b, request))
+    (a.cost + heuristic(a, driveTimeMinutes)) - (b.cost + heuristic(b, driveTimeMinutes))
   );
 
   // Track best cost to reach each state
@@ -419,7 +424,7 @@ export async function optimizeCommute(request: OptimizationRequest): Promise<Opt
     }
 
     // Generate neighbors based on current location
-    const neighbors = getNeighbors(current, bartDepartures, muniDepartures, request);
+    const neighbors = getNeighbors(current, bartDepartures, muniDepartures, driveTimeMinutes);
 
     for (const neighbor of neighbors) {
       const tentativeGScore = neighbor.cost;

@@ -36,15 +36,14 @@ export async function POST(req: Request) {
       );
     }
     
-    const optimizationRequest: OptimizationRequest = {
-      direction,
-      preferred_departure_window,
+    // Run optimization with A* algorithm
+    const result = await optimizeCommute(
+      preferred_departure_window.start,
+      preferred_departure_window.end,
       drive_time_minutes,
       current_time,
-    };
-    
-    // Run optimization with A* algorithm
-    const result = await optimizeCommute(optimizationRequest);
+      direction
+    );
     
     // Transform the response to match the expected format
     const response = {

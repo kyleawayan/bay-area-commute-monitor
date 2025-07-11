@@ -69,7 +69,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
 
-      const result = await optimizeCommute(baseRequest);
+      const result = await optimizeCommute(
+        baseRequest.preferred_departure_window.start,
+        baseRequest.preferred_departure_window.end,
+        baseRequest.drive_time_minutes,
+        baseRequest.current_time,
+        baseRequest.direction
+      );
 
       expect(result.results.length).toBeGreaterThan(0);
       expect(result.results[0].optimal_departure).toBe('08:55');
@@ -88,7 +94,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
 
-      const result = await optimizeCommute(baseRequest);
+      const result = await optimizeCommute(
+        baseRequest.preferred_departure_window.start,
+        baseRequest.preferred_departure_window.end,
+        baseRequest.drive_time_minutes,
+        baseRequest.current_time,
+        baseRequest.direction
+      );
 
       expect(result.results.length).toBeGreaterThan(0);
       expect(result.results[0].optimal_departure).toBe('08:55');
@@ -111,7 +123,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
 
-      const result = await optimizeCommute(narrowRequest);
+      const result = await optimizeCommute(
+        narrowRequest.preferred_departure_window.start,
+        narrowRequest.preferred_departure_window.end,
+        narrowRequest.drive_time_minutes,
+        narrowRequest.current_time,
+        narrowRequest.direction
+      );
 
       // Should only include departures within the narrow window
       expect(result.results.length).toBeLessThan(testScenarios.mondayMorningOptimal.bart.length);
@@ -126,7 +144,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce([]); // No Muni departures
 
-      const result = await optimizeCommute(baseRequest);
+      const result = await optimizeCommute(
+        baseRequest.preferred_departure_window.start,
+        baseRequest.preferred_departure_window.end,
+        baseRequest.drive_time_minutes,
+        baseRequest.current_time,
+        baseRequest.direction
+      );
 
       expect(result.results).toHaveLength(0);
     });
@@ -140,7 +164,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
 
-      const result = await optimizeCommute(baseRequest);
+      const result = await optimizeCommute(
+        baseRequest.preferred_departure_window.start,
+        baseRequest.preferred_departure_window.end,
+        baseRequest.drive_time_minutes,
+        baseRequest.current_time,
+        baseRequest.direction
+      );
 
       expect(result.results.length).toBeGreaterThan(0);
       
@@ -175,7 +205,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(muniWithLongWait);
 
-      const result = await optimizeCommute(baseRequest);
+      const result = await optimizeCommute(
+        baseRequest.preferred_departure_window.start,
+        baseRequest.preferred_departure_window.end,
+        baseRequest.drive_time_minutes,
+        baseRequest.current_time,
+        baseRequest.direction
+      );
 
       // Should prefer options with shorter waits
       expect(result.results.length).toBeGreaterThan(0);
@@ -205,7 +241,13 @@ describe('Commute Optimization', () => {
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.bart)
         .mockReturnValueOnce(testScenarios.mondayMorningOptimal.muni);
 
-      const result = await optimizeCommute(eveningRequest);
+      const result = await optimizeCommute(
+        eveningRequest.preferred_departure_window.start,
+        eveningRequest.preferred_departure_window.end,
+        eveningRequest.drive_time_minutes,
+        eveningRequest.current_time,
+        eveningRequest.direction
+      );
 
       // Should handle reverse direction
       expect(result).toBeDefined();
@@ -224,7 +266,13 @@ describe('Commute Optimization', () => {
         current_time: '2025-07-14T15:00:00Z',
       };
 
-      await expect(optimizeCommute(request)).rejects.toThrow('API Error');
+      await expect(optimizeCommute(
+        request.preferred_departure_window.start,
+        request.preferred_departure_window.end,
+        request.drive_time_minutes,
+        request.current_time,
+        request.direction
+      )).rejects.toThrow('API Error');
     });
 
     it('should handle empty API responses', async () => {
@@ -243,7 +291,13 @@ describe('Commute Optimization', () => {
         current_time: '2025-07-14T15:00:00Z',
       };
 
-      const result = await optimizeCommute(request);
+      const result = await optimizeCommute(
+        request.preferred_departure_window.start,
+        request.preferred_departure_window.end,
+        request.drive_time_minutes,
+        request.current_time,
+        request.direction
+      );
 
       expect(result.results).toHaveLength(0);
     });

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Car, Train, Navigation, RefreshCw, ChevronRight, Footprints } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,22 +38,9 @@ interface OptimizationResult {
 export default function CommuteMaxxing() {
   const [direction, setDirection] = useState<"to_work" | "to_home">("to_work");
   const [driveTime, setDriveTime] = useState(20);
-  const [departureStart, setDepartureStart] = useState("08:30");
-  const [departureEnd, setDepartureEnd] = useState("09:00");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizationResult | null>(null);
-
-  // Update departure times when direction changes
-  useEffect(() => {
-    if (direction === "to_work") {
-      setDepartureStart("08:30");
-      setDepartureEnd("09:00");
-    } else {
-      setDepartureStart("16:00");
-      setDepartureEnd("17:00");
-    }
-  }, [direction]);
 
   const showSampleResults = () => {
     // Generate sample data using the same structure as real optimizer
@@ -215,6 +201,18 @@ export default function CommuteMaxxing() {
     setError(null);
     
     try {
+      // Calculate departure window based on current time
+      const now = new Date();
+      const start = new Date(now.getTime()); // Start now
+      const end = new Date(now.getTime() + 60 * 60 * 1000); // End 60 minutes from now
+      
+      // Format times as HH:MM
+      const formatTime = (date: Date) => {
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+      };
+      
       const response = await fetch("/api/optimize", {
         method: "POST",
         headers: {
@@ -223,12 +221,10 @@ export default function CommuteMaxxing() {
         body: JSON.stringify({
           direction,
           preferred_departure_window: {
-            start: departureStart,
-            end: departureEnd,
+            start: formatTime(start),
+            end: formatTime(end),
           },
           drive_time_minutes: driveTime,
-          // Always use current time for real-time data
-          current_time: new Date().toISOString(),
         }),
       });
 
@@ -324,29 +320,8 @@ export default function CommuteMaxxing() {
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> This app uses real-time transit data and works best during actual commute hours (6-10 AM, 4-7 PM) when live departure information is available. Outside these hours, limited departure data may be available.
+                <strong>Leave Now:</strong> This app finds optimal routes based on real-time transit data. It calculates the best departure time in the next 60 minutes based on current schedules.
               </p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="departure-start">Departure window start</Label>
-                <Input
-                  id="departure-start"
-                  type="time"
-                  value={departureStart}
-                  onChange={(e) => setDepartureStart(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="departure-end">Departure window end</Label>
-                <Input
-                  id="departure-end"
-                  type="time"
-                  value={departureEnd}
-                  onChange={(e) => setDepartureEnd(e.target.value)}
-                />
-              </div>
             </div>
           </div>
 
@@ -364,7 +339,7 @@ export default function CommuteMaxxing() {
             ) : (
               <>
                 <Clock className="mr-2 h-4 w-4" />
-                Get Recommendation
+                Find Next Departure
               </>
             )}
           </Button>
@@ -403,8 +378,8 @@ export default function CommuteMaxxing() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg">Optimal Departure</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">Your commuteMAXXING commute ({result.confidence}% confident). Brought to you by Kyle Awayan, Claude, and 511:</p>
+                    <CardTitle className="text-lg">Next Optimal Departure</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Based on real-time data ({result.confidence}% confident). Brought to you by Kyle Awayan, Claude, and 511:</p>
                   </div>
                 </div>
               </CardHeader>
@@ -464,7 +439,7 @@ export default function CommuteMaxxing() {
           ) : (
             <Alert className="mb-6">
               <AlertDescription>
-                No optimal routes found. This may be because real-time transit data is not available for your preferred departure time. Real-time data typically only shows the next few departures from now.
+                No routes found in the next hour. This typically happens outside of regular transit service hours or when there are service disruptions. Try again in a few minutes or check the transit agency websites for alerts.
               </AlertDescription>
             </Alert>
           )}
@@ -500,7 +475,7 @@ export default function CommuteMaxxing() {
               className="flex items-center"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh with latest data
+              Check for New Departures
             </Button>
           </div>
         </>

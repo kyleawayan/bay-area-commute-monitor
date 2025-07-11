@@ -73,15 +73,17 @@ export interface OptimizationResponse {
 function parseTime(timeStr: string, baseDate: string): Date {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const baseDateTime = new Date(baseDate);
-  const targetTime = new Date(baseDateTime);
-  targetTime.setHours(hours, minutes, 0, 0);
   
-  // If the target time is before current time, assume it's for the next day
-  if (targetTime <= baseDateTime) {
-    targetTime.setDate(targetTime.getDate() + 1);
-  }
+  // Get the date components in UTC
+  const year = baseDateTime.getUTCFullYear();
+  const month = baseDateTime.getUTCMonth();
+  const day = baseDateTime.getUTCDate();
   
-  return targetTime;
+  // Create a date with UTC time components
+  // The timeStr is already in UTC format from the API route
+  const utcDate = new Date(Date.UTC(year, month, day, hours, minutes, 0, 0));
+  
+  return utcDate;
 }
 
 function formatTime(date: Date): string {
@@ -274,13 +276,24 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
 
       case 'bart':
         const bartArrivalTime = state.time;
-        const nextBart = bartDeps.find(d => 
-          new Date(d.departureTime!) >= bartArrivalTime
-        );
+        console.log(`    Looking for BART after ${bartArrivalTime.toISOString()}`);
+        console.log(`    Available BART departures: ${bartDeps.length}`);
+        
+        // Show what BART we would need to catch
+        const idealBartTime = addMinutes(bartArrivalTime, -25); // Need to leave home 25 min before BART
+        console.log(`    To catch BART at ${bartArrivalTime.toISOString()}, need to leave home at ${idealBartTime.toISOString()}`);
+        
+        const nextBart = bartDeps.find(d => {
+          const depTime = new Date(d.departureTime!);
+          const isAfter = depTime >= bartArrivalTime;
+          console.log(`      BART ${d.lineName} departs ${depTime.toISOString()} - ${isAfter ? 'YES catches this' : 'NO too late'}`);
+          return isAfter;
+        });
         
         if (nextBart) {
           const bartDepTime = new Date(nextBart.departureTime!);
           const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime);
+          console.log(`    ✓ Found BART: ${nextBart.lineName} at ${bartDepTime.toISOString()}, wait: ${waitTime}min`);
           
           neighbors.push({
             location: 'muni',
@@ -291,18 +304,27 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
             parent: state,
             bartDeparture: nextBart
           });
+        } else {
+          console.log(`    ✗ No BART found after ${bartArrivalTime.toISOString()}`);
         }
         break;
 
       case 'muni':
         const muniArrivalTime = state.time;
-        const nextMuni = muniDeps.find(d => 
-          new Date(d.departureTime!) >= muniArrivalTime
-        );
+        console.log(`    Looking for Muni after ${muniArrivalTime.toISOString()}`);
+        console.log(`    Available Muni departures: ${muniDeps.length}`);
+        
+        const nextMuni = muniDeps.find(d => {
+          const depTime = new Date(d.departureTime!);
+          const isAfter = depTime >= muniArrivalTime;
+          console.log(`      Muni ${d.lineName} at ${depTime.toISOString()} - after arrival? ${isAfter}`);
+          return isAfter;
+        });
         
         if (nextMuni) {
           const muniDepTime = new Date(nextMuni.departureTime!);
           const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime);
+          console.log(`    ✓ Found Muni: ${nextMuni.lineName} at ${muniDepTime.toISOString()}, wait: ${waitTime}min`);
           
           neighbors.push({
             location: 'office',
@@ -313,6 +335,8 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
             parent: state,
             muniDeparture: nextMuni
           });
+        } else {
+          console.log(`    ✗ No Muni found after ${muniArrivalTime.toISOString()}`);
         }
         break;
     }
@@ -329,14 +353,21 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
         break;
 
       case 'muni':
-        const muniArrivalTime = state.time;
-        const nextMuni = muniDeps.find(d => 
-          new Date(d.departureTime!) >= muniArrivalTime
-        );
+        const muniArrivalTime2 = state.time;
+        console.log(`    Looking for Muni (home) after ${muniArrivalTime2.toISOString()}`);
+        console.log(`    Available Muni departures: ${muniDeps.length}`);
         
-        if (nextMuni) {
-          const muniDepTime = new Date(nextMuni.departureTime!);
-          const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime);
+        const nextMuni2 = muniDeps.find(d => {
+          const depTime = new Date(d.departureTime!);
+          const isAfter = depTime >= muniArrivalTime2;
+          console.log(`      Muni ${d.lineName} at ${depTime.toISOString()} - after arrival? ${isAfter}`);
+          return isAfter;
+        });
+        
+        if (nextMuni2) {
+          const muniDepTime = new Date(nextMuni2.departureTime!);
+          const waitTime = getMinutesDiff(muniDepTime, muniArrivalTime2);
+          console.log(`    ✓ Found Muni (home): ${nextMuni2.lineName} at ${muniDepTime.toISOString()}, wait: ${waitTime}min`);
           
           neighbors.push({
             location: 'bart',
@@ -345,20 +376,29 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
             cost: state.cost + waitTime + TRAVEL_TIMES.muni[config.muniTravelKey] + 
                   WALK_TIMES.bart_to_muni,
             parent: state,
-            muniDeparture: nextMuni
+            muniDeparture: nextMuni2
           });
+        } else {
+          console.log(`    ✗ No Muni (home) found after ${muniArrivalTime2.toISOString()}`);
         }
         break;
 
       case 'bart':
-        const bartArrivalTime = state.time;
-        const nextBart = bartDeps.find(d => 
-          new Date(d.departureTime!) >= bartArrivalTime
-        );
+        const bartArrivalTime2 = state.time;
+        console.log(`    Looking for BART (home) after ${bartArrivalTime2.toISOString()}`);
+        console.log(`    Available BART departures: ${bartDeps.length}`);
         
-        if (nextBart) {
-          const bartDepTime = new Date(nextBart.departureTime!);
-          const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime);
+        const nextBart2 = bartDeps.find(d => {
+          const depTime = new Date(d.departureTime!);
+          const isAfter = depTime >= bartArrivalTime2;
+          console.log(`      BART ${d.lineName} at ${depTime.toISOString()} - after arrival? ${isAfter}`);
+          return isAfter;
+        });
+        
+        if (nextBart2) {
+          const bartDepTime = new Date(nextBart2.departureTime!);
+          const waitTime = getMinutesDiff(bartDepTime, bartArrivalTime2);
+          console.log(`    ✓ Found BART (home): ${nextBart2.lineName} at ${bartDepTime.toISOString()}, wait: ${waitTime}min`);
           
           neighbors.push({
             location: 'parking',
@@ -367,8 +407,10 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], driveTimeM
             cost: state.cost + waitTime + TRAVEL_TIMES.bart[config.bartTravelKey] + 
                   WALK_TIMES.parking_to_bart,
             parent: state,
-            bartDeparture: nextBart
+            bartDeparture: nextBart2
           });
+        } else {
+          console.log(`    ✗ No BART (home) found after ${bartArrivalTime2.toISOString()}`);
         }
         break;
 
@@ -584,19 +626,45 @@ export async function optimizeCommute(
   currentTime: string,
   direction: 'to_work' | 'to_home' = 'to_work'
 ): Promise<OptimizationResponse> {
+  console.log('\n=== OPTIMIZER DEBUG START ===');
+  console.log('Direction:', direction);
+  console.log('Current time:', currentTime);
+  console.log('Departure window:', departureWindowStart, 'to', departureWindowEnd);
+  console.log('Drive time minutes:', driveTimeMinutes);
+  
   const config = getJourneyConfig(direction);
+  console.log('Journey config:', JSON.stringify(config, null, 2));
+  
   const windowStart = parseTime(departureWindowStart, currentTime);
   const windowEnd = parseTime(departureWindowEnd, currentTime);
+  console.log('Window start parsed:', windowStart.toISOString());
+  console.log('Window end parsed:', windowEnd.toISOString());
 
   // Fetch all departures upfront
-  const [bartDepartures, muniDepartures] = await Promise.all([
-    fetchStopMonitoring('BA', config.bartStopCode).then(r => 
-      parseStopMonitoringDepartures(r).filter(d => d.departureTime)
-    ),
-    fetchStopMonitoring('SF', config.muniStopCode).then(r =>
-      parseStopMonitoringDepartures(r).filter(d => d.departureTime && d.lineName?.includes('T'))
-    )
+  console.log('\nFetching departures...');
+  console.log('BART stop code:', config.bartStopCode);
+  console.log('Muni stop code:', config.muniStopCode);
+  
+  const [bartResponse, muniResponse] = await Promise.all([
+    fetchStopMonitoring('BA', config.bartStopCode),
+    fetchStopMonitoring('SF', config.muniStopCode)
   ]);
+  
+  console.log('\nBART API Response:', JSON.stringify(bartResponse, null, 2));
+  console.log('\nMuni API Response:', JSON.stringify(muniResponse, null, 2));
+  
+  const bartDepartures = parseStopMonitoringDepartures(bartResponse).filter(d => d.departureTime);
+  const muniDepartures = parseStopMonitoringDepartures(muniResponse).filter(d => d.departureTime && d.lineName?.includes('T'));
+  
+  console.log('\nParsed BART departures:', bartDepartures.length);
+  bartDepartures.forEach((d, i) => {
+    console.log(`  BART ${i}: ${d.lineName} at ${d.departureTime} (${new Date(d.departureTime).toLocaleString()})`);
+  });
+  
+  console.log('\nParsed Muni departures:', muniDepartures.length);
+  muniDepartures.forEach((d, i) => {
+    console.log(`  Muni ${i}: ${d.lineName} at ${d.departureTime} (${new Date(d.departureTime).toLocaleString()})`);
+  });
 
   // A* priority queue (min-heap based on f = g + h)
   const openSet = new MinHeap<State>((a, b) => 
@@ -607,30 +675,52 @@ export async function optimizeCommute(
   const gScore = new Map<string, number>();
 
   // Start states: any departure time within window (every 5 minutes)
-  for (let minutes = 0; minutes <= getMinutesDiff(windowEnd, windowStart); minutes += 5) {
+  console.log('\nGenerating start states...');
+  const windowDurationMinutes = getMinutesDiff(windowEnd, windowStart);
+  console.log('Window duration minutes:', windowDurationMinutes);
+  
+  for (let minutes = 0; minutes <= windowDurationMinutes; minutes += 5) {
     const departTime = addMinutes(windowStart, minutes);
     const startState: State = {
       location: config.startLocation,
       time: departTime,
       cost: 0
     };
+    console.log(`  Start state ${minutes}min: ${config.startLocation} at ${departTime.toISOString()}`);
     openSet.push(startState);
     gScore.set(getStateKey(startState), 0);
   }
 
   const solutions: State[] = [];
+  let iterations = 0;
+  
+  console.log('\nStarting A* search...');
 
   while (!openSet.isEmpty() && solutions.length < 3) {
     const current = openSet.pop()!;
+    iterations++;
+    
+    if (iterations <= 10) {
+      console.log(`\nIteration ${iterations}:`);
+      console.log(`  Current state: ${current.location} at ${current.time.toISOString()} (cost: ${current.cost})`);
+    }
 
     // Goal reached
     if (current.location === config.endLocation) {
+      console.log(`  ✓ SOLUTION FOUND! Total cost: ${current.cost} minutes`);
       solutions.push(current);
       continue;
     }
 
     // Generate neighbors based on current location
     const neighbors = getNeighbors(current, bartDepartures, muniDepartures, driveTimeMinutes, config);
+    
+    if (iterations <= 10) {
+      console.log(`  Generated ${neighbors.length} neighbors`);
+      neighbors.forEach((n, i) => {
+        console.log(`    Neighbor ${i}: ${n.location} at ${n.time.toISOString()} (cost: ${n.cost})`);
+      });
+    }
 
     for (const neighbor of neighbors) {
       const tentativeGScore = neighbor.cost;
@@ -644,6 +734,20 @@ export async function optimizeCommute(
     }
   }
 
+  console.log(`\nA* search completed after ${iterations} iterations`);
+  console.log(`Found ${solutions.length} solutions`);
+  
+  if (solutions.length === 0) {
+    console.log('\n=== NO SOLUTIONS FOUND ANALYSIS ===');
+    console.log('Possible reasons:');
+    console.log('1. No BART/Muni departures available in the time window');
+    console.log('2. Transit connections don\'t align properly');
+    console.log('3. Departure window too narrow');
+    console.log('4. API returned no data or incorrect data');
+  }
+
   // Convert solutions to response format
-  return formatSolutions(solutions, bartDepartures, muniDepartures, config);
+  const result = formatSolutions(solutions, bartDepartures, muniDepartures, config);
+  console.log('\n=== OPTIMIZER DEBUG END ===\n');
+  return result;
 }

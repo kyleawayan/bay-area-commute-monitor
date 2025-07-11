@@ -6,18 +6,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     
     // Validate request
-    const { direction, preferred_departure_window, drive_time_minutes, current_time } = body;
+    const { direction, drive_time_minutes } = body;
     
     if (!direction || !['to_work', 'to_home'].includes(direction)) {
       return NextResponse.json(
         { error: "Invalid direction. Must be 'to_work' or 'to_home'" },
-        { status: 400 }
-      );
-    }
-    
-    if (!preferred_departure_window?.start || !preferred_departure_window?.end) {
-      return NextResponse.json(
-        { error: "Missing preferred_departure_window with start and end times" },
         { status: 400 }
       );
     }
@@ -29,19 +22,22 @@ export async function POST(req: Request) {
       );
     }
     
-    if (!current_time) {
-      return NextResponse.json(
-        { error: "Missing current_time" },
-        { status: 400 }
-      );
-    }
+    // Use server's current time and create departure window
+    const now = new Date();
+    const currentTime = now.toISOString();
+    
+    // Create departure window: from now to 60 minutes from now
+    // Use UTC hours since the optimizer expects UTC times
+    const startTime = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
+    const endDate = new Date(now.getTime() + 60 * 60 * 1000);
+    const endTime = `${endDate.getUTCHours().toString().padStart(2, '0')}:${endDate.getUTCMinutes().toString().padStart(2, '0')}`;
     
     // Run optimization with A* algorithm
     const result = await optimizeCommute(
-      preferred_departure_window.start,
-      preferred_departure_window.end,
+      startTime,
+      endTime,
       drive_time_minutes,
-      current_time,
+      currentTime,
       direction
     );
     

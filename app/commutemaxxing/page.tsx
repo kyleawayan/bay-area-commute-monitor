@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Car, Train, Navigation, RefreshCw, ChevronRight } from "lucide-react";
+import { Clock, Car, Train, Navigation, RefreshCw, ChevronRight, Footprints } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TRAVEL_TIMES, WALK_TIMES } from "@/app/lib/commute-optimizer";
@@ -170,7 +170,7 @@ export default function CommuteMaxxing() {
       case "muni":
         return <Train className="h-4 w-4" />;
       case "walk":
-        return <Navigation className="h-4 w-4" />;
+        return <Footprints className="h-4 w-4" />;
       default:
         return null;
     }
@@ -181,6 +181,13 @@ export default function CommuteMaxxing() {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}min`;
+  };
+
+  const formatTimeWithAMPM = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
   return (
@@ -308,48 +315,50 @@ export default function CommuteMaxxing() {
       {result && !loading && (
         <>
           {result.optimal_departure ? (
-            <Card className="mb-6 border-2 border-primary">
-              <CardHeader>
+            <Card className="mb-4 border-2 border-primary">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-2xl">Optimal Departure</CardTitle>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
-                    {result.confidence}% confidence
-                  </Badge>
+                  <div>
+                    <CardTitle className="text-lg">Optimal Departure</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Your commuteMAXXING commute ({result.confidence}% confident). Brought to you by Kyle Awayan, Claude, and 511:</p>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Leave house</p>
-                    <p className="text-3xl font-bold">{result.optimal_departure}</p>
+                    <p className="text-xs text-muted-foreground">Leave house</p>
+                    <p className="text-xl font-bold">{formatTimeWithAMPM(result.optimal_departure)}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Total time</p>
-                    <p className="text-3xl font-bold">{formatDuration(result.total_journey_time)}</p>
+                    <p className="text-xs text-muted-foreground">Total time</p>
+                    <p className="text-xl font-bold">{formatDuration(result.total_journey_time)}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Arrive</p>
-                    <p className="text-3xl font-bold">{result.arrival_time}</p>
+                    <p className="text-xs text-muted-foreground">Arrive</p>
+                    <p className="text-xl font-bold">{formatTimeWithAMPM(result.arrival_time)}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="font-medium mb-2">Journey Timeline</h4>
+                <div className="space-y-4">
+                  <h4 className="font-medium mb-2 text-sm">Journey Timeline</h4>
                   {result.segments.map((segment, idx) => (
-                    <div key={idx} className="flex items-center space-x-3 text-sm">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                    <div key={idx} className="flex space-x-2 text-sm">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted">
                         {getModeIcon(segment.mode)}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">
-                            {segment.from} → {segment.to}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {segment.departure} - {segment.arrival}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-xs">{segment.from}</div>
+                            <div className="font-medium text-xs">↓</div>
+                            <div className="font-medium text-xs">{segment.to}</div>
+                          </div>
+                          <span className="text-muted-foreground text-xs whitespace-nowrap ml-2">
+                            {formatTimeWithAMPM(segment.departure)} - {formatTimeWithAMPM(segment.arrival)}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                           <span>{formatDuration(segment.duration)}</span>
                           {segment.wait_time !== undefined && (
                             <span>• {segment.wait_time}min wait</span>
@@ -373,22 +382,22 @@ export default function CommuteMaxxing() {
           )}
 
           {result.alternatives && result.alternatives.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Alternative Options</h3>
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold">Alternative Options</h3>
               {result.alternatives.map((alt, idx) => (
                 <Card key={idx}>
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-3 pb-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex items-center space-x-3">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">Leave at {alt.departure}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Arrive at {alt.arrival} • {formatDuration(alt.total_time)} total
+                          <p className="font-medium text-sm">Leave at {formatTimeWithAMPM(alt.departure)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Arrive at {formatTimeWithAMPM(alt.arrival)} • {formatDuration(alt.total_time)} total
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline">{alt.confidence}%</Badge>
+                      <Badge variant="outline" className="text-xs">{alt.confidence}%</Badge>
                     </div>
                   </CardContent>
                 </Card>

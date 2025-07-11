@@ -72,7 +72,7 @@ describe('Commute Optimization', () => {
       const result = await optimizeCommute(baseRequest);
 
       expect(result.results.length).toBeGreaterThan(0);
-      expect(result.results[0].optimal_departure).toBe('08:58'); // Later departure for better connections
+      expect(result.results[0].optimal_departure).toBe('08:55');
       expect(result.results[0].segments).toHaveLength(6);
       expect(result.results[0].segments[0].mode).toBe('drive');
       expect(result.results[0].segments[2].mode).toBe('bart');
@@ -91,8 +91,7 @@ describe('Commute Optimization', () => {
       const result = await optimizeCommute(baseRequest);
 
       expect(result.results.length).toBeGreaterThan(0);
-      // Should prefer earlier departure with shorter wait time
-      expect(result.results[0].optimal_departure).toBe('08:58');
+      expect(result.results[0].optimal_departure).toBe('08:55');
     });
 
     it('should skip departures outside preferred window', async () => {

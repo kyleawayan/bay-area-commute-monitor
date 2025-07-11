@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       current_time,
     };
     
-    // Run optimization
+    // Run optimization with A* algorithm
     const result = await optimizeCommute(optimizationRequest);
     
     // Transform the response to match the expected format

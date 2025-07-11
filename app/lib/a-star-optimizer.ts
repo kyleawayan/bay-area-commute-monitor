@@ -1,103 +1,13 @@
 import { fetchStopMonitoring, parseStopMonitoringDepartures } from './transit-api';
-
-// Hardcoded constants
-export const TRAVEL_TIMES = {
-  bart: {
-    north_concord_to_powell: 51,
-    powell_to_north_concord: 49,
-  },
-  muni: {
-    union_square_to_ucsf: 15,
-    ucsf_to_union_square: 15,
-  },
-};
-
-export const WALK_TIMES = {
-  parking_to_bart: 5,
-  bart_to_muni: 8,
-  muni_to_office: 7,
-};
-
-export const STOP_CODES = {
-  bart: {
-    north_concord: '903702',
-    powell: '901302',
-  },
-  muni: {
-    union_square_northbound: '17877',
-    ucsf_northbound: '17360',
-    // TODO: Add southbound stops for evening commute
-  },
-};
-
-export interface OptimizationRequest {
-  direction: 'to_work' | 'to_home';
-  preferred_departure_window: {
-    start: string; // HH:MM format
-    end: string;   // HH:MM format
-  };
-  drive_time_minutes: number;
-  current_time: string; // ISO string
-}
-
-export interface JourneySegment {
-  mode: 'drive' | 'bart' | 'muni' | 'walk';
-  from: string;
-  to: string;
-  duration: number;
-  departure: string;
-  arrival: string;
-  wait_time?: number;
-  line?: string;
-}
-
-export interface OptimizationResult {
-  optimal_departure: string;
-  total_journey_time: number;
-  arrival_time: string;
-  confidence: number;
-  segments: JourneySegment[];
-}
-
-export interface OptimizationResponse {
-  results: OptimizationResult[];
-  raw_schedules: {
-    bart_departures: any[];
-    muni_departures: any[];
-  };
-}
-
-function parseTime(timeStr: string, baseDate: string): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  const baseDateTime = new Date(baseDate);
-  const targetTime = new Date(baseDateTime);
-  targetTime.setHours(hours, minutes, 0, 0);
-  
-  // If the target time is before current time, assume it's for the next day
-  if (targetTime <= baseDateTime) {
-    targetTime.setDate(targetTime.getDate() + 1);
-  }
-  
-  return targetTime;
-}
-
-function formatTime(date: Date): string {
-  return date.toTimeString().slice(0, 5);
-}
-
-function addMinutes(date: Date, minutes: number): Date {
-  return new Date(date.getTime() + minutes * 60000);
-}
-
-function getMinutesDiff(later: Date, earlier: Date): number {
-  return Math.round((later.getTime() - earlier.getTime()) / 60000);
-}
+import { TRAVEL_TIMES, WALK_TIMES, STOP_CODES } from './commute-optimizer';
+import type { OptimizationRequest, OptimizationResponse, OptimizationResult, JourneySegment } from './commute-optimizer';
 
 interface State {
   location: 'home' | 'parking' | 'bart' | 'muni' | 'office';
   time: Date;
   cost: number; // Total time elapsed
   parent?: State;
+  // Which specific departure we're taking
   bartDeparture?: any;
   muniDeparture?: any;
 }
@@ -156,6 +66,31 @@ class MinHeap<T> {
   }
 }
 
+function parseTime(timeStr: string, baseDate: string): Date {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const baseDateTime = new Date(baseDate);
+  const targetTime = new Date(baseDateTime);
+  targetTime.setHours(hours, minutes, 0, 0);
+  
+  if (targetTime <= baseDateTime) {
+    targetTime.setDate(targetTime.getDate() + 1);
+  }
+  
+  return targetTime;
+}
+
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60000);
+}
+
+function getMinutesDiff(later: Date, earlier: Date): number {
+  return Math.round((later.getTime() - earlier.getTime()) / 60000);
+}
+
+function formatTime(date: Date): string {
+  return date.toTimeString().slice(0, 5);
+}
+
 function getStateKey(state: State): string {
   return `${state.location}-${state.time.getTime()}`;
 }
@@ -188,6 +123,7 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], request: O
   
   switch (state.location) {
     case 'home':
+      // Next: drive to parking
       neighbors.push({
         location: 'parking',
         time: addMinutes(state.time, request.drive_time_minutes),
@@ -197,6 +133,7 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], request: O
       break;
 
     case 'parking':
+      // Next: walk to BART
       neighbors.push({
         location: 'bart',
         time: addMinutes(state.time, WALK_TIMES.parking_to_bart),
@@ -206,6 +143,7 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], request: O
       break;
 
     case 'bart':
+      // Next: take BART (must wait for next departure)
       const bartArrivalTime = state.time;
       const nextBart = bartDeps.find(d => 
         new Date(d.departureTime!) >= bartArrivalTime
@@ -228,6 +166,7 @@ function getNeighbors(state: State, bartDeps: any[], muniDeps: any[], request: O
       break;
 
     case 'muni':
+      // Next: take Muni
       const muniArrivalTime = state.time;
       const nextMuni = muniDeps.find(d => 
         new Date(d.departureTime!) >= muniArrivalTime
@@ -372,7 +311,7 @@ function formatSolutions(solutions: State[], bartDepartures: any[], muniDepartur
   };
 }
 
-export async function optimizeCommute(request: OptimizationRequest): Promise<OptimizationResponse> {
+export async function optimizeCommuteAStar(request: OptimizationRequest): Promise<OptimizationResponse> {
   const currentTime = new Date(request.current_time);
   const windowStart = parseTime(request.preferred_departure_window.start, request.current_time);
   const windowEnd = parseTime(request.preferred_departure_window.end, request.current_time);

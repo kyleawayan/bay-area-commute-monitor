@@ -41,6 +41,20 @@ export async function POST(req: Request) {
     // Use server's current time as reference
     const currentTime = new Date().toISOString();
     
+    // Validate that the departure time hasn't already passed today
+    const currentDate = new Date();
+    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    const [endHours, endMinutes] = preferred_departure_window.end.split(':').map(Number);
+    const windowEnd = new Date(targetDate);
+    windowEnd.setUTCHours(endHours + 8, endMinutes, 0, 0); // Pacific to UTC conversion
+    
+    if (windowEnd < currentDate) {
+      return NextResponse.json(
+        { error: `Departure time ${preferred_departure_window.end} has already passed today. Please select a later time.` },
+        { status: 400 }
+      );
+    }
+    
     // Run optimization with user's preferred departure window
     const result = await optimizeCommute(
       preferred_departure_window.start,
@@ -69,11 +83,11 @@ export async function POST(req: Request) {
     
   } catch (error) {
     console.error("Error in optimize API:", error);
+    
+    // All errors here are internal (API failures, etc.) - return generic message
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "Failed to optimize commute",
-      },
-      { status: 400 }
+      { error: "Unable to optimize commute at this time. Please try again in a few minutes." },
+      { status: 500 }
     );
   }
 }

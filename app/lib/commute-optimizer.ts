@@ -651,10 +651,7 @@ export async function optimizeCommute(
   const windowEnd = new Date(targetDate);
   windowEnd.setUTCHours(endHours + 8, endMinutes, 0, 0);
   
-  // Validate that the departure time hasn't already passed
-  if (windowEnd < currentDate) {
-    throw new Error(`Departure time ${departureWindowEnd} has already passed today. Please select a later time.`);
-  }
+  // Note: Time validation is handled at the API route level
   
   console.log('Target date:', targetDate.toDateString());
   console.log('Window start (UTC):', windowStart.toISOString());

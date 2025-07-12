@@ -88,7 +88,8 @@ export async function fetchStopTimetable(
     return validatedData;
   } catch (error) {
     console.error("Error fetching timetable data:", error);
-    throw error;
+    // Don't expose internal API errors to the client
+    throw new Error("Transit data is temporarily unavailable. Please try again in a few minutes.");
   }
 }
 

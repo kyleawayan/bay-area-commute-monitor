@@ -635,10 +635,32 @@ export async function optimizeCommute(
   const config = getJourneyConfig(direction);
   console.log('Journey config:', JSON.stringify(config, null, 2));
   
-  const windowStart = parseTime(departureWindowStart, currentTime);
-  const windowEnd = parseTime(departureWindowEnd, currentTime);
-  console.log('Window start parsed:', windowStart.toISOString());
-  console.log('Window end parsed:', windowEnd.toISOString());
+  // Parse departure window times in Pacific timezone  
+  const currentDate = new Date(currentTime);
+  const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  
+  // Parse times as Pacific timezone
+  const [startHours, startMinutes] = departureWindowStart.split(':').map(Number);
+  const [endHours, endMinutes] = departureWindowEnd.split(':').map(Number);
+  
+  // Create dates in Pacific timezone by setting UTC time appropriately
+  // Pacific is UTC-8, so 8:30 AM Pacific = 16:30 UTC
+  const windowStart = new Date(targetDate);
+  windowStart.setUTCHours(startHours + 8, startMinutes, 0, 0); // Add 8 hours to convert Pacific to UTC
+  
+  const windowEnd = new Date(targetDate);
+  windowEnd.setUTCHours(endHours + 8, endMinutes, 0, 0);
+  
+  // Validate that the departure time hasn't already passed
+  if (windowEnd < currentDate) {
+    throw new Error(`Departure time ${departureWindowEnd} has already passed today. Please select a later time.`);
+  }
+  
+  console.log('Target date:', targetDate.toDateString());
+  console.log('Window start (UTC):', windowStart.toISOString());
+  console.log('Window end (UTC):', windowEnd.toISOString());
+  console.log('Window start (Pacific equivalent):', new Date(windowStart.getTime() - 8*60*60*1000).toISOString());
+  console.log('Window end (Pacific equivalent):', new Date(windowEnd.getTime() - 8*60*60*1000).toISOString());
 
   // Fetch all departures upfront using timetable API
   console.log('\nFetching departures...');
@@ -648,7 +670,7 @@ export async function optimizeCommute(
   // Format start/end times for API (HH:MM in UTC)
   const apiStartTime = `${windowStart.getUTCHours().toString().padStart(2, '0')}:${windowStart.getUTCMinutes().toString().padStart(2, '0')}`;
   const apiEndTime = `${windowEnd.getUTCHours().toString().padStart(2, '0')}:${windowEnd.getUTCMinutes().toString().padStart(2, '0')}`;
-  console.log('API time window:', apiStartTime, 'to', apiEndTime);
+  console.log('API time window (UTC):', apiStartTime, 'to', apiEndTime);
   
   const [bartResponse, muniResponse] = await Promise.all([
     fetchStopTimetable('BA', config.bartStopCode, apiStartTime, apiEndTime),
@@ -679,13 +701,17 @@ export async function optimizeCommute(
   // Track best cost to reach each state
   const gScore = new Map<string, number>();
 
-  // Start states: any departure time within window (every 5 minutes)
+  // Start states: any departure time within window (every 5 minutes) 
+  // Convert back to Pacific time for the A* search since all our logic expects Pacific time
+  const pacificWindowStart = new Date(windowStart.getTime() - 8*60*60*1000);
+  const pacificWindowEnd = new Date(windowEnd.getTime() - 8*60*60*1000);
+  
   console.log('\nGenerating start states...');
-  const windowDurationMinutes = getMinutesDiff(windowEnd, windowStart);
+  const windowDurationMinutes = getMinutesDiff(pacificWindowEnd, pacificWindowStart);
   console.log('Window duration minutes:', windowDurationMinutes);
   
   for (let minutes = 0; minutes <= windowDurationMinutes; minutes += 5) {
-    const departTime = addMinutes(windowStart, minutes);
+    const departTime = addMinutes(pacificWindowStart, minutes);
     const startState: State = {
       location: config.startLocation,
       time: departTime,

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -38,9 +39,22 @@ interface OptimizationResult {
 export default function CommuteMaxxing() {
   const [direction, setDirection] = useState<"to_work" | "to_home">("to_work");
   const [driveTime, setDriveTime] = useState(20);
+  const [departureStart, setDepartureStart] = useState("08:30");
+  const [departureEnd, setDepartureEnd] = useState("09:00");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizationResult | null>(null);
+
+  // Update departure window defaults when direction changes
+  useEffect(() => {
+    if (direction === "to_work") {
+      setDepartureStart("08:30");
+      setDepartureEnd("09:00");
+    } else {
+      setDepartureStart("16:00");
+      setDepartureEnd("17:00");
+    }
+  }, [direction]);
 
   const showSampleResults = () => {
     // Generate sample data using the same structure as real optimizer
@@ -201,18 +215,6 @@ export default function CommuteMaxxing() {
     setError(null);
     
     try {
-      // Calculate departure window based on current time
-      const now = new Date();
-      const start = new Date(now.getTime()); // Start now
-      const end = new Date(now.getTime() + 60 * 60 * 1000); // End 60 minutes from now
-      
-      // Format times as HH:MM
-      const formatTime = (date: Date) => {
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
-      };
-      
       const response = await fetch("/api/optimize", {
         method: "POST",
         headers: {
@@ -221,8 +223,8 @@ export default function CommuteMaxxing() {
         body: JSON.stringify({
           direction,
           preferred_departure_window: {
-            start: formatTime(start),
-            end: formatTime(end),
+            start: departureStart,
+            end: departureEnd,
           },
           drive_time_minutes: driveTime,
         }),
@@ -317,10 +319,48 @@ export default function CommuteMaxxing() {
             <p className="text-xs text-muted-foreground">Check Google Maps for accurate drive time</p>
           </div>
 
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Preferred {direction === "to_work" ? "departure" : "departure"} window
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="departure-start" className="text-xs text-muted-foreground">
+                  Start time
+                </Label>
+                <Input
+                  id="departure-start"
+                  type="time"
+                  value={departureStart}
+                  onChange={(e) => setDepartureStart(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="departure-end" className="text-xs text-muted-foreground">
+                  End time
+                </Label>
+                <Input
+                  id="departure-end"
+                  type="time"
+                  value={departureEnd}
+                  onChange={(e) => setDepartureEnd(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {direction === "to_work" 
+                ? "What time range would you like to leave home?" 
+                : "What time range would you like to leave the office?"
+              }
+            </p>
+          </div>
+
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>Leave Now:</strong> This app finds optimal routes based on real-time transit data. It calculates the best departure time in the next 60 minutes based on current schedules.
+                <strong>Smart Timing:</strong> This app finds the optimal departure time within your preferred window using real-time transit schedules from the 511 API.
               </p>
             </div>
           </div>
@@ -339,7 +379,7 @@ export default function CommuteMaxxing() {
             ) : (
               <>
                 <Clock className="mr-2 h-4 w-4" />
-                Find Next Departure
+                Optimize My Commute
               </>
             )}
           </Button>

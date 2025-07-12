@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { optimizeCommute, OptimizationRequest } from "@/app/lib/commute-optimizer";
+import { optimizeCommute } from "@/app/lib/commute-optimizer";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
     // Validate request
-    const { direction, drive_time_minutes } = body;
+    const { direction, drive_time_minutes, preferred_departure_window } = body;
     
     if (!direction || !['to_work', 'to_home'].includes(direction)) {
       return NextResponse.json(
@@ -21,21 +21,30 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    if (!preferred_departure_window || !preferred_departure_window.start || !preferred_departure_window.end) {
+      return NextResponse.json(
+        { error: "Missing preferred_departure_window. Must include start and end times in HH:MM format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate time format (HH:MM)
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(preferred_departure_window.start) || !timeRegex.test(preferred_departure_window.end)) {
+      return NextResponse.json(
+        { error: "Invalid time format. Use HH:MM format (e.g., '08:30', '17:45')" },
+        { status: 400 }
+      );
+    }
     
-    // Use server's current time and create departure window
-    const now = new Date();
-    const currentTime = now.toISOString();
+    // Use server's current time as reference
+    const currentTime = new Date().toISOString();
     
-    // Create departure window: from now to 60 minutes from now
-    // Use UTC hours since the optimizer expects UTC times
-    const startTime = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
-    const endDate = new Date(now.getTime() + 60 * 60 * 1000);
-    const endTime = `${endDate.getUTCHours().toString().padStart(2, '0')}:${endDate.getUTCMinutes().toString().padStart(2, '0')}`;
-    
-    // Run optimization with A* algorithm
+    // Run optimization with user's preferred departure window
     const result = await optimizeCommute(
-      startTime,
-      endTime,
+      preferred_departure_window.start,
+      preferred_departure_window.end,
       drive_time_minutes,
       currentTime,
       direction
@@ -62,10 +71,9 @@ export async function POST(req: Request) {
     console.error("Error in optimize API:", error);
     return NextResponse.json(
       { 
-        error: "Failed to optimize commute",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Failed to optimize commute",
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

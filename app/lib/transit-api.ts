@@ -39,6 +39,21 @@ export const StopTimetableResponseSchema = z.object({
 
 export type StopTimetableResponse = z.infer<typeof StopTimetableResponseSchema>;
 
+// Schema for parsed departure objects (output of parseStopTimetableDepartures)
+export const StopTimetableDepartureSchema = z.object({
+  lineRef: z.string(),
+  lineName: z.string(),
+  direction: z.string(),
+  origin: z.string(),
+  destination: z.string(),
+  departureTime: z.string(),
+  arrivalTime: z.string(),
+  vehicleRef: z.string().nullable(),
+  occupancy: z.string().nullable(),
+});
+
+export type StopTimetableDeparture = z.infer<typeof StopTimetableDepartureSchema>;
+
 export async function fetchStopTimetable(
   operatorRef: string,
   monitoringRef: string,
@@ -77,7 +92,7 @@ export async function fetchStopTimetable(
   }
 }
 
-export function parseStopTimetableDepartures(response: StopTimetableResponse) {
+export function parseStopTimetableDepartures(response: StopTimetableResponse): StopTimetableDeparture[] {
   const visits = response.Siri.ServiceDelivery.StopTimetableDelivery?.TimetabledStopVisit || [];
   
   return visits.map(visit => {

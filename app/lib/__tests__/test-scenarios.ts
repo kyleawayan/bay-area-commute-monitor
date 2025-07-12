@@ -1,7 +1,9 @@
 // Test scenarios for different commute times and conditions
 // Using EXACT format from real 511 API responses
 
-export const mondayMorningBartDepartures = [
+import { StopTimetableDeparture } from '../transit-api';
+
+export const mondayMorningBartDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'Yellow-N',
     lineName: 'Warm Springs/South Fremont to Daly City',
@@ -59,7 +61,7 @@ export const mondayMorningBartDepartures = [
   },
 ];
 
-export const mondayMorningMuniDepartures = [
+export const mondayMorningMuniDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'T',
     lineName: 'T Third Street',
@@ -106,7 +108,7 @@ export const mondayMorningMuniDepartures = [
   },
 ];
 
-export const rushhourBartDepartures = [
+export const rushhourBartDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'Yellow-N',
     lineName: 'Warm Springs/South Fremont to Daly City',
@@ -142,7 +144,7 @@ export const rushhourBartDepartures = [
   },
 ];
 
-export const rushhourMuniDepartures = [
+export const rushhourMuniDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'T',
     lineName: 'T Third Street',
@@ -178,7 +180,7 @@ export const rushhourMuniDepartures = [
   },
 ];
 
-export const lateStartBartDepartures = [
+export const lateStartBartDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'Yellow-N',
     lineName: 'Warm Springs/South Fremont to Daly City',
@@ -203,7 +205,7 @@ export const lateStartBartDepartures = [
   },
 ];
 
-export const lateStartMuniDepartures = [
+export const lateStartMuniDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'T',
     lineName: 'T Third Street',
@@ -243,7 +245,7 @@ export const lateStartMuniDepartures = [
 // + 5min walk to parking = 6:26 PM
 // + 20min drive = 6:46 PM arrive home
 
-export const mondayEveningMuniDepartures = [
+export const mondayEveningMuniDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'T',
     lineName: 'T Third Street',
@@ -290,7 +292,7 @@ export const mondayEveningMuniDepartures = [
   },
 ];
 
-export const mondayEveningBartDepartures = [
+export const mondayEveningBartDepartures: StopTimetableDeparture[] = [
   {
     lineRef: 'Yellow-N',
     lineName: 'Daly City to Antioch',
@@ -337,7 +339,13 @@ export const mondayEveningBartDepartures = [
   },
 ];
 
-export const testScenarios = {
+export interface TestScenario {
+  bart: StopTimetableDeparture[];
+  muni: StopTimetableDeparture[];
+  description: string;
+}
+
+export const testScenarios: Record<string, TestScenario> = {
   mondayMorningOptimal: {
     bart: mondayMorningBartDepartures,
     muni: mondayMorningMuniDepartures,
